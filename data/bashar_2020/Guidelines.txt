@@ -1,0 +1,213 @@
+Hi Ramy --
+
+Below are three sections. 1 and 2 are about the data sets and output -- for you.
+Section 3 is for the annotators + you.
+
+
+=========================================================
+1. Data Files
+=========================================================
+
+## Sources
+For the data to annotate, we selected 50K (plus 2% for problems)
+divided proportionally based on the full corpus distributions of first and second person pronouns in OpenSubtitles 2018.
+
+OpenSub_INotYou.en-ar 42.5% 21,250 > 22,100  (A-Set)
+OpenSub_YouNotI.en-ar 36.4% 18,200 > 18,928  (B-Set)
+OpenSub_IAndYou.en-ar 21.1% 10,550 > 10,972  (C-Set)
+                      100%  50,000 > 52,000
+
+Each file has three columns:  <SentenceID>, English, Arabic.
+The Arabic has been processed lightly to tokenize whitespace (punc and space).
+Processing was done in Madamira.
+
+head -1 *
+==> A-Set-en-ar.tsv <==
+A-1	! --Oh, I'm so sorry. My hand slipped.	اعتذر ، لقد انزلقت يدي .
+
+==> B-Set-en-ar.tsv <==
+B-1	! 'Cause the day when we first met, when we got in that fight in the hallway, Mr. C took your side.	لأن عندما تقابلنا أول مرة ، عندما تقاتلنا في الرواق ، وقف السيد ( ك ) إلى جانبك .
+
+==> C-Set-en-ar.tsv <==
+C-1	! Do you think I like having to make out with mommy?	أتظن أنني أحب الممارسه مع امي ؟
+
+
+tail -1 *
+
+==> A-Set-en-ar.tsv <==
+A-22100	I looked into his eyes.	- لقد نظرت في عينيه .
+
+==> B-Set-en-ar.tsv <==
+B-18928	Why won't you speak?	لم لا ترد ؟
+
+==> C-Set-en-ar.tsv <==
+C-10972	If you try, I will kill you myself. I swear.	اذا حاولت ذلك فسأقتك بنفسي ، اقسم
+Nizars-iMac:ForRamytech nh48$
+
+
+=========================================================
+2. Annotation Output
+=========================================================
+
+The files should be read in Excel/Google sheets.
+The first three columns should be kept intact (from the provided files)
+
+The results of the annotation should be put in five columns:
+
+SentenceID , English , Arabic, Gender ,  History
+
+Sentence ID and English are the same as the input.
+History has two values: Original, and New. Original is for input Arabic; and New is for new Arabic translations.
+
+Gender is a multi-part label (see below) that indicates the gender of the Arabic sentence.
+
+Example input
+
+C888  I'm patient like you my friend  أنا صبور مثلك يا صديقي
+
+Example Output
+
+C888  I'm patient like you my friend أنا صبور مثلك يا صديقي M-M Original
+C888  I'm patient like you my friend أنا صبورة مثلك يا صديقي F-M  New
+C888  I'm patient like you my friend أنا صبور مثلك يا صديقتي M-F  New
+C888  I'm patient like you my friend أنا صبورة مثلك يا صديقتي F-F New
+
+
+=========================================================
+3. Annotation Guidelines
+=========================================================
+
+In a google sheet - load the the set to annotate.
+This should have three columns: Sentence ID, English, Arabic.
+You can copy the Arabic, but do not changes columns 1,2,3.
+Add three new columns: <SentenceType> and <SwitchTranslation>
+
+i.  <SentenceType> has the following possible values
+
+* B-S = Bad Sentence
+  This is used for cases with incorrect Arabic. For example, cases with merged words, odd translation Arabic.
+
+  A-8888	Yes, oh, baby, I know	نعم ، أوه ، طفلرضيع ، أعرف
+  A-8888	Yes, oh, baby, I know ؟؟؟
+
+minor Arabic spelling errors (Hamza, Alif maqsura, Ta-marbuta) will be tolerated and should NOT be given B-S label.
+
+* Two letter code (X1-X2)  for first person (المتكلم) and second person (المخاطب) references.
+
+The codes (X1 or X2) can be one of four values:
+
+ N = not present in the sentence
+ B = present but can be male or female singular
+ M = present and male singular
+ F = present and female singular
+
+
+Note that the first person is not considered present if no pronoun or verb conjugation or agreement refer to the first person.
+
+Ignore proper name gender: مريم or مايكل may have a common default gender, but we will treat all names as B!  Treat all proper names as if they can be either gender (like نور، سلام، صباح، بات، اليكس). We do not judge... and this makes it easy for less obvious names: جوان or لينغ.
+
+We do not expect the dual and plural to happen much, but when they do add a "!" to the label: F! = feminine dual or plural.
+
+
+Examples
+
+الجو ممتع >> N-N  (no first or second person)
+
+أنا صبورة مثلك يا صديقي F-M (speaker is female; talking with a male)
+
+اريد رؤيتك >> B-B (since no diacritics are used, the text is ambiguous
+
+قف ! >> N-M (although a first person is speaking, there is no mark for first person.)
+
+لقد سمعتكن تتكلمن عن مايكل >> B-F! (first person is B, but second person is F plural)
+
+مرحبا ، انا ماري >> B-N (first person is present, ignore proper name)
+
+مرحبا ، انا ماري جارتك الجديدة >> F-B (first person is present, gender determinable)
+
+ii.  <SwitchTranslation>
+
+For the cases that specify a gender, provide a switched gender translation.
+
+There are three scenarios:
+
+a. No translation is needed:
+
+B-S
+
+N-N
+N-B
+B-N
+B-B
+
+b. Translate the one specific gender:
+
+M-B
+M-N
+F-B
+F-N
+
+B-M
+N-M
+B-F
+N-F
+
+c. Translate the two specific genders:
+
+M-M
+F-F
+F-M
+M-F
+
+
+For case b (translate one specific gender), just provide the version with the flipped gender (more on that below), where F->M and M->F.
+
+for case c (translate two specific genders),  just flip the first person.
+M-M -> F-M
+F-F -> M-F
+F-M -> M-M
+M-F -> F-F
+
+In a second round, you will flip the second person gender.
+This will be done a separate special step.
+
+
+What does it mean to flip the gender?
+
+Instructions:
+* Read the sentence carefully.
+* Determine if first and second persons are present and if their genders are discernible.   Indicate the proper <SentenceType>.
+* if there is one M or F at least, copy the Arabic and paste in the <SwitchTranslation>  column. Proceed to change the gender:
+   - Do not add or delete words
+   - Do not correct the spelling of a word. If minor (hamza, ta-marbuta, alif maqsura), leave it alone.  If the spelling error is sever (merge,incoherent), do not translate, and give the sentence a B-S type.
+   - Only change words by modifying the gender feature. Do not change number.
+   - Do not change proper names: مريم or مايكل may have a common default gender, but we will treat all names as B.
+   - There are two types of changes:
+       # change the grammar: declension/conjugation
+          انت تكتب M > انت تكتبين F
+          انا سعيدة F > انا سعيد M
+          انت الملك M > انت الملكة
+
+      # change the lexical item: for words that have a default gender meaning
+          انا ابوك M > انا امك
+
+      Note the odd case of
+          انا حامل F
+      In such cases, Put the words "HARD CASE" in the translation column.
+
+
+For the cases that will require two rounds, you will need to do a second round to flip the second person gender. Example:
+
+
+أنا صبور مثلك يا صديقي => MM
+Round 1: أنا صبورة مثلك يا صديقي FM
+
+Then both sentences are added as starting point in a later round to generate the rest:
+
+Round 2 for all MM/FM/FF/MF:
+أنا صبور مثلك يا صديقتي MF
+أنا صبورة مثلك يا صديقتي FF
+
+
+
+======================================================================

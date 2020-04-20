@@ -1,0 +1,80 @@
+[BB, NB, BN, NN, B!N!,....]: no translation
+[BM, BF, NM, NF, B!M,.....]: second person translation
+[MB, FB, MN, FN, F!N,.....]: first person translation
+[MM, MF, FF, FM, F!M,.....]: first person translation [Round 1]. Do we have access to the second person translations?
+
+============================================
+* Download the 3 datasets as 3 .tsv files (1-25K, 25K-45K, 45K-52K).
+* Create sets A, B, C and sort them by ID 
+============================================
+
+awk -F '\t' '{if ($1~"^A") print $0}' *.tsv | sort -t '\t' -n -r -k 1.2 > INotYou.A.tsv
+awk -F '\t' '{if ($1~"^B") print $0}' *.tsv | sort -t '\t' -n -r -k 1.2 > YouNotI.B.tsv
+awk -F '\t' '{if ($1~"^C") print $0}' *.tsv | sort -t '\t' -n -r -k 1.2 > IAndYou.C.tsv
+
+
+============================================
+* get the HARD examples:
+============================================
+
+awk -F '\t' '{if ($5 ~ "HARD") print $0}' INotYou.A.tsv | wc
+awk -F '\t' '{if ($5 ~ "HARD") print $0}' YouNotI.B.tsv | wc
+awk -F '\t' '{if ($5 ~ "HARD") print $0}' IAndYou.C.tsv | wc
+
+============================================
+* get the bad translations which weren't 
+hard:
+============================================
+
+awk -F '\t' '{if ($6 ~ "Bad*" && $4 != "" ) print $0}' INotYou.A.tsv | wc
+awk -F '\t' '{if ($6 ~ "Bad*" && $4 != "" ) print $0}' YouNotI.B.tsv | wc
+awk -F '\t' '{if ($6 ~ "Bad*" && $4 != "" ) print $0}' IAndYou.C.tsv | wc
+
+============================================
+filtering out the bad translations and HARD 
+examples:
+============================================
+
+awk -F '\t' '{if ($6!~"Bad*" && $4 != "" ) print $0}' INotYou.A.tsv > INotYou.A.no_hard_no_bad.tsv 
+awk -F '\t' '{if ($6!~"Bad*" && $4 != "" ) print $0}' YouNotI.B.tsv > YouNotI.B.no_hard_no_bad.tsv 
+awk -F '\t' '{if ($6!~"Bad*" && $4 != "" ) print $0}' IAndYou.C.tsv > IAndYou.C.no_hard_no_bad.tsv 
+
+============================================
+getting the counts of the examples with no 
+switched translations [BB,NN,NB,BN,N!B,.....]:
+============================================
+
+awk -F '\t' '{if ($4 ~ "^[BN](\!*)-[BNS](\!*)") print $4}' INotYou.A.no_hard_no_bad.tsv | sort | uniq -c
+awk -F '\t' '{if ($4 ~ "^[BN](\!*)-[BNS](\!*)") print $4}' YouNotI.B.no_hard_no_bad.tsv | sort | uniq -c
+awk -F '\t' '{if ($4 ~ "^[BN](\!*)-[BNS](\!*)") print $4}' IAndYou.C.no_hard_no_bad.tsv | sort | uniq -c
+
+============================================
+getting the counts of the examples with 
+switched translations for the SECOND PERSON *only* 
+[BF,NF,NM,BM,NM!,.....]:
+============================================
+
+awk -F '\t' '{ if ($4 ~ "^[BN](\!*)-[FM](\!*)") print $4}' INotYou.A.no_hard_no_bad.tsv | sort | uniq -c 
+awk -F '\t' '{ if ($4 ~ "^[BN](\!*)-[FM](\!*)") print $4}' YouNotI.B.no_hard_no_bad.tsv | sort | uniq -c 
+awk -F '\t' '{ if ($4 ~ "^[BN](\!*)-[FM](\!*)") print $4}' IAndYou.C.no_hard_no_bad.tsv | sort | uniq -c 
+
+============================================
+getting the counts of the examples with the 
+switched translations for the FIRST PERSON *only* 
+[FB, MB, FN, MN,.....]:
+============================================
+
+awk -F '\t' '{if ($4 ~ "^[FM](\!*)-[BN](\!*)") print $4}' INotYou.A.no_hard_no_bad.tsv | sort | uniq -c 
+awk -F '\t' '{if ($4 ~ "^[FM](\!*)-[BN](\!*)") print $4}' YouNotI.B.no_hard_no_bad.tsv | sort | uniq -c 
+awk -F '\t' '{if ($4 ~ "^[FM](\!*)-[BN](\!*)") print $4}' IAndYou.C.no_hard_no_bad.tsv | sort | uniq -c 
+
+============================================
+getting the counts of the examples with the 
+switched translations for the FIRST PERSON *only* 
+where a second translation should have been done 
+[FF, FM, MM, MF,......]:
+============================================
+
+awk -F '\t' '{if ($4 ~ "^[FM](\!*)-[FM](\!*)") print $4}' INotYou.A.no_hard_no_bad.tsv | sort | uniq -c 
+awk -F '\t' '{if ($4 ~ "^[FM](\!*)-[FM](\!*)") print $4}' YouNotI.B.no_hard_no_bad.tsv | sort | uniq -c 
+awk -F '\t' '{if ($4 ~ "^[FM](\!*)-[FM](\!*)") print $4}' IAndYou.C.no_hard_no_bad.tsv | sort | uniq -c 
