@@ -1,4 +1,5 @@
 #!/bin/bash
+# TODO: find a better way to provide inputs and ouputs to this script
 python  ~/m2scorer/scripts/edit_creator.py D-set-dev.ar.F D-set-dev.ar.M > edits_annotations/D-set-dev.F.to.M.edits_annotation
 python  ~/m2scorer/scripts/edit_creator.py D-set-dev.ar.M D-set-dev.ar.F > edits_annotations/D-set dev.M.to.F.edits_annotation
 python  ~/m2scorer/scripts/edit_creator.py D-set-dev.arin D-set-dev.ar.M > edits_annotations/D-set-dev.arin.to.M.edits_annotation
