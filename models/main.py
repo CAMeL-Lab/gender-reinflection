@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 import torch.optim as optim
 from torch.nn.utils.rnn import pad_sequence
@@ -8,6 +9,10 @@ import random
 import numpy as np
 import argparse
 from seq2seq import Seq2Seq
+import logging 
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class Vectorizer:
     """Vectorizer Class"""
@@ -373,6 +378,7 @@ def main():
     model = model.to(device)
 
     if args.do_train:
+        logger.info('Training...')
         collator = Collator(SRC_PAD_INDEX, TRG_PAD_INDEX)
         train_losses = []
         dev_losses = []
@@ -397,8 +403,8 @@ def main():
                 torch.save(model.state_dict(), args.model_path)
             
             scheduler.step(dev_loss)
-            print(f'Epoch: {(epoch + 1)}')
-            print(f'\tTrain Loss: {train_loss:.4f}   |   Dev Loss: {dev_loss:.4f}')
+            logger.info(f'Epoch: {(epoch + 1)}')
+            logger.info(f'\tTrain Loss: {train_loss:.4f}   |   Dev Loss: {dev_loss:.4f}')
 
 if __name__ == "__main__":
     main()
