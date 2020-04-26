@@ -405,18 +405,19 @@ def main():
             scheduler.step(dev_loss)
             logger.info(f'Epoch: {(epoch + 1)}')
             logger.info(f'\tTrain Loss: {train_loss:.4f}   |   Dev Loss: {dev_loss:.4f}')
+        
+        if args.do_eval:
+            logger.info('Evaluation')
+            collator = Collator(SRC_PAD_INDEX, TRG_PAD_INDEX)
+            set_seed(args.seed, args.use_cuda)
+            dev_losses = []
+            for epoch in range(args.num_epochs):
+                dataset.set_split('dev')
+                dataloader = DataLoader(dataset, shuffle=True, batch_size=args.batch_size, collate_fn=collator)
+                dev_loss = evaluate(model, dataloader, criterion, device, teacher_forcing_prob=0)
+                dev_losses.append(dev_loss)
+                logger.info(f'Dev Loss: {dev_loss:.4f}')
+
 
 if __name__ == "__main__":
     main()
-    # dataset = MT_Dataset.load_data_and_create_vectorizer('/Users/ba63/Desktop/repos/gender-bias/data/christine_2019/Arabic-parallel-gender-corpus')
-    # vectorizer = dataset.get_vectorizer()
-    # collator = Collator(src_pad_idx=vectorizer.src_vocab.pad_idx, trg_pad_idx=vectorizer.trg_vocab.pad_idx)
-    # dataloader = DataLoader(dataset, batch_size=2, shuffle=False, collate_fn=collator)
-    # for batch in dataloader:
-    #     src = batch['src']
-    #     trg_x = batch['trg_x']
-    #     trg_y = batch['trg_y']
-    #     src_lengths = batch['src_lengths']
-    #     print(src)
-    #     break
-    # print(dataset[0])
