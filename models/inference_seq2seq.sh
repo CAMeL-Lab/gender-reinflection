@@ -20,7 +20,7 @@ python main.py \
  --hidd_dim 64 \
  --learning_rate 5e-4 \
  --seed 21 \
- --model_path /home/ba63/gender-bias/models/saved_models/char_level_nmt_old.pt \
+ --model_path /home/ba63/gender-bias/models/saved_models/char_level_nmt_improv.pt \
  --do_inference \
- --inference_mode dev \
- --preds_dir /home/ba63/gender-bias/models/dev_preds
+ --inference_mode train \
+ --preds_dir /home/ba63/gender-bias/models/train_preds_improv
