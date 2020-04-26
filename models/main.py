@@ -9,6 +9,7 @@ import random
 import numpy as np
 import argparse
 from seq2seq import Seq2Seq
+from nmt_sampler import NMT_Batch_Sampler
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -243,6 +244,44 @@ def evaluate(model, dataloader, criterion, device='cpu', teacher_forcing_prob=0)
 
     return epoch_loss / len(dataloader)
 
+def inference(sampler, dataloader, preds_dir):
+    output_file = open(preds_dir, mode='w', encoding='utf8')
+
+    for batch in dataloader:
+        sampler.update_batch(batch)
+        src = sampler.get_src_sentence(0)
+        trg = sampler.get_trg_sentence(0)
+        pred = sampler.get_pred_sentence(0)
+        translated = sampler.translate_sentence(src)
+
+        output_file.write(translated)
+        output_file.write('\n')
+        logger.info(f'src: ' + src)
+        logger.info(f'trg: ' + trg)
+        logger.info(f'pred: ' + pred)
+        logger.info(f'trans: ' + translated)
+        # print(src)
+        # print(trg)
+        # print(pred)
+        # print(translated)
+        # print(len(translated))
+        # train_log.write(f'src: ' + src)
+        # train_log.write('\n')
+        # train_log.write(f'trg: ' + trg)
+        # train_log.write('\n')
+        # train_log.write(f'pred: ' + pred)
+        # train_log.write('\n')
+        # train_log.write(f'trans: ' + translated)
+        # train_log.write('\n\n')
+        # train_preds.write(pred)
+        # train_preds.write('\n')
+        # train_preds_inf.write(translated)
+        # train_preds_inf.write('\n')
+    # train_log.close()
+    # train_preds.close()
+    # train_preds_inf.close()
+    output_file.close()
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -327,6 +366,23 @@ def main():
         action="store_true",
         help="Whether to run eval or not."
     )
+    parser.add_argument(
+        "--do_inference",
+        action="store_true",
+        help="Whether to do inference or not."
+    )
+    parser.add_argument(
+        "--inference_mode",
+        type=str,
+        default="dev",
+        help="The dataset to do inference on."
+    )
+    parser.add_argument(
+        "--preds_dir",
+        type=str,
+        default=None,
+        help="The directory to write the translations to"
+    )
     args = parser.parse_args()
     # args = argparse.Namespace(data_dir='/home/ba63/gender-bias/data/christine_2019/Arabic-parallel-gender-corpus',
     #                     vectorizer_path='/home/ba63/gender-bias/models/saved_models/char_level_vectorizer.json',
@@ -373,12 +429,11 @@ def main():
     criterion = nn.CrossEntropyLoss(ignore_index=TRG_PAD_INDEX)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
                                                     patience=2, factor=0.5)
-
+    collator = Collator(SRC_PAD_INDEX, TRG_PAD_INDEX)
     model = model.to(device)
 
     if args.do_train:
         logger.info('Training...')
-        collator = Collator(SRC_PAD_INDEX, TRG_PAD_INDEX)
         train_losses = []
         dev_losses = []
         best_loss = 1e10
@@ -405,17 +460,27 @@ def main():
             logger.info(f'Epoch: {(epoch + 1)}')
             logger.info(f'\tTrain Loss: {train_loss:.4f}   |   Dev Loss: {dev_loss:.4f}')
 
-        if args.do_eval:
-            logger.info('Evaluation')
-            collator = Collator(SRC_PAD_INDEX, TRG_PAD_INDEX)
-            set_seed(args.seed, args.use_cuda)
-            dev_losses = []
-            for epoch in range(args.num_train_epochs):
-                dataset.set_split('dev')
-                dataloader = DataLoader(dataset, shuffle=True, batch_size=args.batch_size, collate_fn=collator)
-                dev_loss = evaluate(model, dataloader, criterion, device, teacher_forcing_prob=0)
-                dev_losses.append(dev_loss)
-                logger.info(f'Dev Loss: {dev_loss:.4f}')
+    if args.do_eval:
+        logger.info('Evaluation')
+        set_seed(args.seed, args.use_cuda)
+        dev_losses = []
+        for epoch in range(args.num_train_epochs):
+            dataset.set_split('dev')
+            dataloader = DataLoader(dataset, shuffle=True, batch_size=args.batch_size, collate_fn=collator)
+            dev_loss = evaluate(model, dataloader, criterion, device, teacher_forcing_prob=0)
+            dev_losses.append(dev_loss)
+            logger.info(f'Dev Loss: {dev_loss:.4f}')
+
+    if args.do_inference:
+        logger.info('Inference')
+        set_seed(args.seed, args.use_cuda)
+        model.load_state_dict(torch.load(args.model_path))
+        device = torch.device('cpu')
+        model = model.to(device)
+        dataset.set_split(args.inference_mode)
+        dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=collator)
+        sampler = NMT_Batch_Sampler(model, vectorizer.src_vocab, vectorizer.trg_vocab)
+        inference(sampler, dataloader, args.preds_dir)
 
 
 if __name__ == "__main__":
