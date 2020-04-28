@@ -2,6 +2,11 @@ import json
 import csv
 import os
 import copy
+import numpy as np
+from camel_tools.calima_star.database import CalimaStarDB
+from camel_tools.calima_star.analyzer import CalimaStarAnalyzer
+from camel_tools.disambig.mle import MLEDisambiguator
+import torch 
 
 class InputExample:
     """Simple object to encapsulate each data example"""
@@ -141,3 +146,97 @@ class SeqVocabulary(Vocabulary):
 
     def lookup_token(self, token):
         return self.token_to_idx.get(token, self.unk_idx)
+
+class MorphFeaturizer:
+    """Morphological Featurizer Class"""
+    def __init__(self, analyzer_db_path):
+        self.db = CalimaStarDB(analyzer_db_path)
+        self.analyzer = CalimaStarAnalyzer(self.db, cache_size=46000)
+        self.disambiguator = MLEDisambiguator(self.analyzer)
+        self.w_to_features = {}
+
+    def featurize(self, sentence):
+        """
+        Args:
+            - sentence (str): a sentence in Arabic
+        Returns:
+            - a dictionary of word to vector mapping for each word in the sentence.
+              Each vector will be a one-hot representing the following features:
+              [lex+m lex+f spvar+m spvar+f]
+        """
+        # using the MLEDisambiguator to get the analyses
+        disambiguations = self.disambiguator.disambiguate(sentence.split(' '), top=0)
+        # disambiguations is a list of DisambiguatedWord objects
+        # each DisambiguatedWord object is a tuple of: (word, scored_analyses)
+        # scored_analyses is a list of ScoredAnalysis objects
+        # each ScoredAnalysis object is a tuple of: (score, analysis)
+
+        for disambig in disambiguations:
+            word, scored_analyses = disambig
+            if word not in self.w_to_features:
+                self.w_to_features[word] = list()
+                if scored_analyses:
+                    for scored_analysis in scored_analyses:
+                        # each analysis will have a vector
+                        score, analysis = scored_analysis
+                        features = np.zeros(4, dtype=int)
+
+                        # getting the source and gender features
+                        src = analysis['source']
+                        gen = analysis['gen']
+
+                        if src == 'lex' and gen == 'm':
+                            features[0] = 1
+                        elif src == 'lex' and gen == 'f':
+                            features[1] = 1
+                        elif src == 'spvar' and gen == 'm':
+                            features[2] = 1
+                        elif src == 'spvar' and gen == 'f':
+                            features[3] = 1
+
+                        self.w_to_features[word].append(features)
+
+                    # squashing all the vectors into one
+                    self.w_to_features[word] = np.array(self.w_to_features[word])
+                    self.w_to_features[word] = self.w_to_features[word].sum(axis=0)
+                    # replacing all the 0 elements with -1
+                    self.w_to_features[word][self.w_to_features[word] == 0] = -1
+                    # replacing all the other elements with 1
+                    self.w_to_features[word][self.w_to_features[word] > 0] = 1
+                    self.w_to_features[word] = self.w_to_features[word].tolist()
+                else:
+                    self.w_to_features[word] = np.full((4), -1).tolist()
+
+    def featurize_sentences(self, sentences):
+        """Featurizes a list of sentences"""
+        for sentence in sentences:
+            self.featurize(sentence)
+
+    def to_serializable(self):
+        return {'morph_features': self.w_to_features}
+
+    def from_serializable(self, contents):
+        self.w_to_features = contents['morph_features']
+
+    def save_morph_features(self, path):
+        with open(path, mode='w', encoding='utf8') as f:
+            return json.dump(self.to_serializable(), f, ensure_ascii=False)
+
+    def load_morph_features(self, path):
+        with open(path) as f:
+            return self.from_serializable(json.load(f))
+
+    def create_morph_embeddings(self, word_vocab):
+        """Creating a morphological features embedding matrix"""
+        morph_features = self.w_to_features
+
+        # Note: morph_features will have all the words in word_vocab
+        # except: <s>, pad, unk, </s>, ' '
+
+        # Creating a -1 embedding matrix of shape: (len(word_vocab), 4)
+        morph_embedding_matrix = torch.ones((len(word_vocab), 4)) * -1
+        for word in word_vocab.token_to_idx:
+            if word in morph_features:
+                index = word_vocab.lookup_token(word)
+                morph_embedding_matrix[index] = torch.tensor(morph_features[word], dtype=torch.float64)
+        return morph_embedding_matrix
