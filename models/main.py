@@ -8,8 +8,10 @@ import json
 import random
 import numpy as np
 import argparse
-from seq2seq import Seq2Seq
-from nmt_sampler import NMT_Batch_Sampler
+from seq2seq_improved import Seq2Seq
+# from nmt_sampler import NMT_Batch_Sampler
+from nmt_sampler_improv import NMT_Batch_Sampler
+import matplotlib.pyplot as plt
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -197,10 +199,15 @@ def train(model, dataloader, optimizer, criterion, device='cpu', teacher_forcing
         trg_y = batch['trg_y']
         src_lengths = batch['src_lengths']
 
-        preds = model(src_seqs=src,
-                      src_seqs_lengths=src_lengths,
-                      trg_seqs=trg_x,
-                      teacher_forcing_prob=teacher_forcing_prob)
+        # preds = model(src_seqs=src,
+        #               src_seqs_lengths=src_lengths,
+        #               trg_seqs=trg_x,
+        #               teacher_forcing_prob=teacher_forcing_prob)
+
+        preds, attention_scores = model(src,
+                                        src_lengths,
+                                        trg_x,
+                                        teacher_forcing_prob=teacher_forcing_prob)
 
         # CrossEntropysLoss accepts matrices always! 
         # the preds must be of size (N, C) where C is the number 
@@ -228,10 +235,15 @@ def evaluate(model, dataloader, criterion, device='cpu', teacher_forcing_prob=0)
             trg_y = batch['trg_y']
             src_lengths = batch['src_lengths']
 
-            preds = model(src_seqs=src,
-                          src_seqs_lengths=src_lengths,
-                          trg_seqs=trg_x,
-                          teacher_forcing_prob=teacher_forcing_prob)
+            # preds = model(src_seqs=src,
+            #               src_seqs_lengths=src_lengths,
+            #               trg_seqs=trg_x,
+            #               teacher_forcing_prob=teacher_forcing_prob)
+
+            preds, attention_scores = model(src,
+                                            src_lengths,
+                                            trg_x,
+                                            teacher_forcing_prob=teacher_forcing_prob)
             # CrossEntropyLoss accepts matrices always! 
             # the preds must be of size (N, C) where C is the number 
             # of classes and N is the number of samples. 
@@ -245,17 +257,20 @@ def evaluate(model, dataloader, criterion, device='cpu', teacher_forcing_prob=0)
     return epoch_loss / len(dataloader)
 
 def inference(sampler, dataloader, preds_dir):
+    output_inf_file = open(preds_dir + '.inf', mode='w', encoding='utf8')
     output_file = open(preds_dir, mode='w', encoding='utf8')
-
     for batch in dataloader:
         sampler.update_batch(batch)
         src = sampler.get_src_sentence(0)
         trg = sampler.get_trg_sentence(0)
         pred = sampler.get_pred_sentence(0)
+
         translated = sampler.translate_sentence(src)
 
-        output_file.write(translated)
+        output_file.write(pred)
         output_file.write('\n')
+        output_inf_file.write(translated)
+        output_inf_file.write('\n')
         logger.info(f'src: ' + src)
         logger.info(f'trg: ' + trg)
         logger.info(f'pred: ' + pred)
@@ -367,6 +382,11 @@ def main():
         help="Whether to run eval or not."
     )
     parser.add_argument(
+        "--visualize_loss",
+        action="store_true",
+        help="Whether to visualize the loss during training and evaluation."
+    )
+    parser.add_argument(
         "--do_inference",
         action="store_true",
         help="Whether to do inference or not."
@@ -415,6 +435,15 @@ def main():
     DECODER_OUTPUT_DIM = len(vectorizer.trg_vocab)
     SRC_PAD_INDEX = vectorizer.src_vocab.pad_idx
     TRG_PAD_INDEX = vectorizer.trg_vocab.pad_idx
+    TRG_SOS_INDEX = vectorizer.trg_vocab.sos_idx
+    # model = Seq2Seq(encoder_input_dim=ENCODER_INPUT_DIM,
+    #                 encoder_embed_dim=args.embedding_dim,
+    #                 encoder_hidd_dim=args.hidd_dim,
+    #                 decoder_input_dim=DECODER_INPUT_DIM,
+    #                 decoder_embed_dim=args.embedding_dim,
+    #                 decoder_output_dim=DECODER_OUTPUT_DIM,
+    #                 src_padding_idx=SRC_PAD_INDEX,
+    #                 trg_padding_idx=TRG_PAD_INDEX)
 
     model = Seq2Seq(encoder_input_dim=ENCODER_INPUT_DIM,
                     encoder_embed_dim=args.embedding_dim,
@@ -423,7 +452,8 @@ def main():
                     decoder_embed_dim=args.embedding_dim,
                     decoder_output_dim=DECODER_OUTPUT_DIM,
                     src_padding_idx=SRC_PAD_INDEX,
-                    trg_padding_idx=TRG_PAD_INDEX)
+                    trg_padding_idx=TRG_PAD_INDEX,
+                    trg_sos_idx=TRG_SOS_INDEX)
 
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
     criterion = nn.CrossEntropyLoss(ignore_index=TRG_PAD_INDEX)
@@ -459,6 +489,14 @@ def main():
             scheduler.step(dev_loss)
             logger.info(f'Epoch: {(epoch + 1)}')
             logger.info(f'\tTrain Loss: {train_loss:.4f}   |   Dev Loss: {dev_loss:.4f}')
+
+    if args.do_train and args.visualize_loss:
+        plt.plot(range(1, 1 + args.num_epochs), np.asarray(train_losses), 'b-', color='blue', label='Training')
+        plt.plot(range(1, 1 + args.num_epochs), np.asarray(dev_losses), 'b-', color='orange', label='Evaluation')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.legend()
+        plt.savefig(args.model_path + '.loss.png')
 
     if args.do_eval:
         logger.info('Evaluation')
