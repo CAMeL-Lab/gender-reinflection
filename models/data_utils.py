@@ -63,8 +63,8 @@ class RawDataset:
 
     def get_train_examples(self, data_dir):
         """Reads the train examples of the dataset"""
-        return self.create_examples(os.path.join(data_dir, 'D-set-train.arin'),
-                                    os.path.join(data_dir, 'D-set-train.ar.M'))
+        return self.create_examples(os.path.join(data_dir, 'merged_data/D-set-train.arin+S-set-F'),
+                                    os.path.join(data_dir, 'merged_data/D-set-train.ar.M+S-set-M'))
 
     def get_dev_examples(self, data_dir):
         """Reads the dev examples of the dataset"""
@@ -179,7 +179,7 @@ class MorphFeaturizer:
                     for scored_analysis in scored_analyses:
                         # each analysis will have a vector
                         score, analysis = scored_analysis
-                        features = np.zeros(4, dtype=int)
+                        features = np.zeros(4)
 
                         # getting the source and gender features
                         src = analysis['source']
@@ -199,13 +199,13 @@ class MorphFeaturizer:
                     # squashing all the vectors into one
                     self.w_to_features[word] = np.array(self.w_to_features[word])
                     self.w_to_features[word] = self.w_to_features[word].sum(axis=0)
-                    # replacing all the 0 elements with -1
-                    self.w_to_features[word][self.w_to_features[word] == 0] = -1
-                    # replacing all the other elements with 1
+                    # replacing all the elements > with 1
                     self.w_to_features[word][self.w_to_features[word] > 0] = 1
+                   # replacing all the 0 elements with 1e-6 
+                    self.w_to_features[word][self.w_to_features[word] == 0] = 1e-6
                     self.w_to_features[word] = self.w_to_features[word].tolist()
                 else:
-                    self.w_to_features[word] = np.full((4), -1).tolist()
+                    self.w_to_features[word] = np.full((4), 1e-6).tolist()
 
     def featurize_sentences(self, sentences):
         """Featurizes a list of sentences"""
@@ -234,7 +234,7 @@ class MorphFeaturizer:
         # except: <s>, pad, unk, </s>, ' '
 
         # Creating a -1 embedding matrix of shape: (len(word_vocab), 4)
-        morph_embedding_matrix = torch.ones((len(word_vocab), 4)) * -1
+        morph_embedding_matrix = torch.ones((len(word_vocab), 4)) * 1e-6
         for word in word_vocab.token_to_idx:
             if word in morph_features:
                 index = word_vocab.lookup_token(word)
