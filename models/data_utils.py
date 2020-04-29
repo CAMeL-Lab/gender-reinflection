@@ -6,7 +6,7 @@ import numpy as np
 from camel_tools.calima_star.database import CalimaStarDB
 from camel_tools.calima_star.analyzer import CalimaStarAnalyzer
 from camel_tools.disambig.mle import MLEDisambiguator
-import torch 
+import torch
 
 class InputExample:
     """Simple object to encapsulate each data example"""
