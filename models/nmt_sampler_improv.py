@@ -56,7 +56,7 @@ class NMT_Batch_Sampler:
                 sentence.append(vocab.lookup_index(i))
         return ''.join(sentence)
 
-    def translate_sentence(self, sentence, max_len=120):
+    def translate_sentence(self, sentence, max_len=512):
         # vectorizing the src sentence on the char level and word level
 
         sentence = re.split(r'(\s+)', sentence)
