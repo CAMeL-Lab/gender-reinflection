@@ -6,18 +6,39 @@ import torch.nn.functional as F
 
 class Encoder(nn.Module):
     """Encoder bi-GRU"""
-    def __init__(self, input_dim, embed_dim,
-                 hidd_dim, padding_idx=0):
+    def __init__(self, input_dim, char_embed_dim,
+                 hidd_dim, morph_embeddings=None,
+                 char_padding_idx=0, word_padding_idx=0):
 
         super(Encoder, self).__init__()
-        self.embedding_layer = nn.Embedding(input_dim, embed_dim, padding_idx=padding_idx)
-        self.rnn = nn.GRU(embed_dim, hidd_dim, batch_first=True, bidirectional=True)
+        morph_embeddings_dim = 0
+        self.morph_embedding_layer = None
+        self.char_embedding_layer = nn.Embedding(input_dim, char_embed_dim, padding_idx=char_padding_idx)
 
-    def forward(self, src_seqs, src_seqs_lengths):
+        if morph_embeddings is not None:
+            self.morph_embedding_layer = nn.Embedding.from_pretrained(morph_embeddings, padding_idx=word_padding_idx)
+            morph_embeddings_dim = morph_embeddings.shape[1]
 
-        embedded_seqs = self.embedding_layer(src_seqs)
-        # packing the embedded_seqs
-        packed_embedded_seqs = pack_padded_sequence(embedded_seqs, src_seqs_lengths, batch_first=True)
+        self.rnn = nn.GRU(char_embed_dim + morph_embeddings_dim, hidd_dim, batch_first=True, bidirectional=True)
+
+    def forward(self, char_src_seqs, word_src_seqs, src_seqs_lengths):
+
+        embedded_char_seqs = self.char_embedding_layer(char_src_seqs)
+        # embedded_char_seqs shape: [batch_size, max_src_seq_len, char_embed_dim]
+
+        if self.morph_embedding_layer is not None:
+            embedded_word_seqs = self.morph_embedding_layer(word_src_seqs)
+            # embedded_char_seqs shape: [batch_size, max_src_seq_len, morph_embeddings_dim]
+
+            merged_embeddings = torch.cat((embedded_char_seqs, embedded_word_seqs), dim=2)
+            # merged_embeddings shape: [batch_size, max_src_seq_len, char_embed_dim + morph_embeddings_dim]
+
+            # packing the embedded_seqs
+            packed_embedded_seqs = pack_padded_sequence(merged_embeddings, src_seqs_lengths, batch_first=True)
+
+        else:
+            # packing the embedded_seqs
+            packed_embedded_seqs = pack_padded_sequence(embedded_char_seqs, src_seqs_lengths, batch_first=True)
 
         output, hidd = self.rnn(packed_embedded_seqs)
         # hidd shape: [num_layers * num_dirs, batch_size, hidd_dim]
@@ -77,7 +98,7 @@ class Decoder(nn.Module):
         # decoder_h_t shape: [batch_size, hidd_dim]
 
         # Step 3: updating the context vectors through attention
-        context_vectors, atten_scores = self.attention(key_vectors=encoder_outputs, 
+        context_vectors, atten_scores = self.attention(key_vectors=encoder_outputs,
                                                        query_vector=decoder_h_t,
                                                        mask=attention_mask)
 
@@ -155,13 +176,16 @@ class Seq2Seq(nn.Module):
     def __init__(self, encoder_input_dim, encoder_embed_dim,
                  encoder_hidd_dim, decoder_input_dim,
                  decoder_embed_dim, decoder_output_dim,
-                 src_padding_idx=0, trg_padding_idx=0, trg_sos_idx=2):
+                 morph_embeddings=None, char_src_padding_idx=0,
+                 word_src_padding_idx=0, trg_padding_idx=0, trg_sos_idx=2):
 
         super(Seq2Seq, self).__init__()
         self.encoder = Encoder(input_dim=encoder_input_dim,
-                               embed_dim=encoder_embed_dim,
+                               char_embed_dim=encoder_embed_dim,
                                hidd_dim=encoder_hidd_dim,
-                               padding_idx=src_padding_idx)
+                               morph_embeddings=morph_embeddings,
+                               char_padding_idx=char_src_padding_idx,
+                               word_padding_idx=word_src_padding_idx)
 
         self.decoder_hidd_dim = encoder_hidd_dim * 2
 
@@ -175,7 +199,7 @@ class Seq2Seq(nn.Module):
                                attention=self.attention,
                                padding_idx=trg_padding_idx)
 
-        self.src_padding_idx = src_padding_idx
+        self.char_src_padding_idx = char_src_padding_idx
         self.trg_sos_idx = trg_sos_idx
         self.sampling_temperature = 3
 
@@ -183,17 +207,17 @@ class Seq2Seq(nn.Module):
         mask = (src_seqs != src_padding_idx)
         return mask
 
-    def forward(self, src_seqs, src_seqs_lengths, trg_seqs, teacher_forcing_prob=0.3):
+    def forward(self, char_src_seqs, word_src_seqs, src_seqs_lengths, trg_seqs, teacher_forcing_prob=0.3):
         # trg_seqs shape: [batch_size, trg_seqs_length]
         # reshaping to: [trg_seqs_length, batch_size]
         trg_seqs = trg_seqs.permute(1, 0)
         trg_seqs_length, batch_size = trg_seqs.shape
 
         # passing the src to the encoder
-        encoder_outputs, encoder_hidd = self.encoder(src_seqs, src_seqs_lengths)
+        encoder_outputs, encoder_hidd = self.encoder(char_src_seqs, word_src_seqs, src_seqs_lengths)
 
         # creating attention masks
-        attention_mask = self.create_mask(src_seqs, self.src_padding_idx)
+        attention_mask = self.create_mask(char_src_seqs, self.char_src_padding_idx)
 
         predictions = []
         decoder_attention_scores = []
