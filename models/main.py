@@ -3,9 +3,10 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 import torch.optim as optim
 from torch.nn.utils.rnn import pad_sequence
-from data_utils import SeqVocabulary, RawDataset
+from data_utils import SeqVocabulary, RawDataset, MorphFeaturizer
 import json
 import random
+import re
 import numpy as np
 import argparse
 from seq2seq_improved import Seq2Seq
@@ -19,31 +20,43 @@ logger = logging.getLogger(__name__)
 
 class Vectorizer:
     """Vectorizer Class"""
-    def __init__(self, src_vocab, trg_vocab):
-        """src_vocab and trg_vocab are on the char
-        level"""
-        self.src_vocab = src_vocab
-        self.trg_vocab = trg_vocab
+    def __init__(self, src_vocab_char, trg_vocab_char,
+                 src_vocab_word, trg_vocab_word):
+        """src_vocab_char and trg_vocab_char are on the char
+        level. src_vocab_word and trg_vocab_word are on the
+        word level"""
+        self.src_vocab_char = src_vocab_char
+        self.trg_vocab_char = trg_vocab_char
+        self.src_vocab_word = src_vocab_word
+        self.trg_vocab_word = trg_vocab_word
 
     @classmethod
     def create_vectorizer(cls, data_examples):
         """Class method which builds the vectorizer
         vocab"""
 
-        src_vocab = SeqVocabulary()
-        trg_vocab = SeqVocabulary()
+        src_vocab_char = SeqVocabulary()
+        trg_vocab_char = SeqVocabulary()
+        src_vocab_word = SeqVocabulary()
+        trg_vocab_word = SeqVocabulary()
 
         for ex in data_examples:
             src = ex.src
             trg = ex.trg
 
-            for t in src:
-                src_vocab.add_token(t)
+            # splitting by a regex to maintain the space
+            src = re.split(r'(\s+)', src)
+            trg = re.split(r'(\s+)', trg)
 
-            for t in trg:
-                trg_vocab.add_token(t)
+            for word in src:
+                src_vocab_word.add_token(word)
+                src_vocab_char.add_many(list(word))
 
-        return cls(src_vocab, trg_vocab)
+            for word in trg:
+                trg_vocab_word.add_token(word)
+                trg_vocab_char.add_many(list(word))
+
+        return cls(src_vocab_char, trg_vocab_char, src_vocab_word, trg_vocab_word)
 
     def get_src_indices(self, seq):
         """
@@ -51,12 +64,25 @@ class Vectorizer:
           - seq (str): The src sequence
 
         Returns:
-          - indices (list): <s> + List of tokens to index mapping + </s>
+          - char_level_indices (list): <s> + List of chars to index mapping + </s>
+          - word_level_indices (list): <s> + List of words to index mapping + </s>
         """
-        indices = [self.src_vocab.sos_idx]
-        indices.extend([self.src_vocab.lookup_token(t) for t in seq])
-        indices.append(self.src_vocab.eos_idx)
-        return indices
+
+        char_level_indices = [self.src_vocab_char.sos_idx]
+        word_level_indices = [self.src_vocab_word.sos_idx]
+        seq = re.split(r'(\s+)', seq)
+
+        for word in seq:
+            for c in word:
+                char_level_indices.append(self.src_vocab_char.lookup_token(c))
+                word_level_indices.append(self.src_vocab_word.lookup_token(word))
+
+        word_level_indices.append(self.src_vocab_word.eos_idx)
+        char_level_indices.append(self.src_vocab_char.eos_idx)
+
+        assert len(word_level_indices) == len(char_level_indices)
+
+        return char_level_indices, word_level_indices
 
     def get_trg_indices(self, seq):
         """
@@ -64,13 +90,13 @@ class Vectorizer:
           - seq (str): The trg sequence
 
         Returns:
-          - trg_x_indices (list): <s> + List of tokens to index mapping
-          - trg_y_indices (list): List of tokens to index mapping + </s>
+          - trg_x_indices (list): <s> + List of chars to index mapping
+          - trg_y_indices (list): List of chars to index mapping + </s>
         """
-        indices = [self.trg_vocab.lookup_token(t) for t in seq]
+        indices = [self.trg_vocab_char.lookup_token(t) for t in seq]
 
-        trg_x_indices = [self.trg_vocab.sos_idx] + indices
-        trg_y_indices = indices + [self.trg_vocab.eos_idx]
+        trg_x_indices = [self.trg_vocab_char.sos_idx] + indices
+        trg_y_indices = indices + [self.trg_vocab_char.eos_idx]
         return trg_x_indices, trg_y_indices
 
     def vectorize(self, src, trg):
@@ -79,31 +105,37 @@ class Vectorizer:
           - src (str): The src sequence
           - src (str): The trg sequence
         Returns:
-          - vectorized_src
+          - vectorized_src_char
+          - vectorized_src_word
           - vectorized_trg_x
           - vectorized_trg_y
         """
         src = src
         trg = trg
 
-        vectorized_src = self.get_src_indices(src)
+        vectorized_src_char, vectorized_src_word = self.get_src_indices(src)
         vectorized_trg_x, vectorized_trg_y = self.get_trg_indices(trg)
 
-        return {'src': torch.tensor(vectorized_src, dtype=torch.long),
+        return {'src_char': torch.tensor(vectorized_src_char, dtype=torch.long),
+                'src_word': torch.tensor(vectorized_src_word, dtype=torch.long),
                 'trg_x': torch.tensor(vectorized_trg_x, dtype=torch.long),
                 'trg_y': torch.tensor(vectorized_trg_y, dtype=torch.long)
                }
 
     def to_serializable(self):
-        return {'src_vocab': self.src_vocab.to_serializable(),
-                'trg_vocab': self.trg_vocab.to_serializable()
+        return {'src_vocab_char': self.src_vocab_char.to_serializable(),
+                'trg_vocab_char': self.trg_vocab_char.to_serializable(),
+                'src_vocab_word': self.src_vocab_word.to_serializable(),
+                'trg_vocab_word': self.trg_vocab_word.to_serializable()
                }
 
     @classmethod
     def from_serializable(cls, contents):
-        src_vocab = SeqVocabulary.from_serializable(contents['src_vocab'])
-        trg_vocab = SeqVocabulary.from_serializable(contents['trg_vocab'])
-        return cls(src_vocab, trg_vocab)
+        src_vocab_char = SeqVocabulary.from_serializable(contents['src_vocab_char'])
+        src_vocab_word = SeqVocabulary.from_serializable(contents['src_vocab_word'])
+        trg_vocab_char = SeqVocabulary.from_serializable(contents['trg_vocab_char'])
+        trg_vocab_word = SeqVocabulary.from_serializable(contents['trg_vocab_word'])
+        return cls(src_vocab_char, trg_vocab_char, src_vocab_word, trg_vocab_word)
 
 
 class MT_Dataset(Dataset):
@@ -158,28 +190,35 @@ class MT_Dataset(Dataset):
         return len(self.split_examples)
 
 class Collator:
-    def __init__(self, src_pad_idx, trg_pad_idx):
-        self.src_pad_idx = src_pad_idx
-        self.trg_pad_idx = trg_pad_idx
+    def __init__(self, char_src_pad_idx, char_trg_pad_idx,
+                word_src_pad_idx):
+        self.char_src_pad_idx = char_src_pad_idx
+        self.word_src_pad_idx = word_src_pad_idx
+        self.char_trg_pad_idx = char_trg_pad_idx
 
     def __call__(self, batch):
         # Sorting the batch by src seqs length in descending order
-        sorted_batch = sorted(batch, key=lambda x: x['src'].shape[0], reverse=True)
+        sorted_batch = sorted(batch, key=lambda x: x['src_char'].shape[0], reverse=True)
 
-        src_seqs = [x['src'] for x in sorted_batch]
+        src_char_seqs = [x['src_char'] for x in sorted_batch]
+        src_word_seqs = [x['src_word'] for x in sorted_batch]
+        assert len(src_word_seqs) == len(src_char_seqs)
         trg_x_seqs = [x['trg_x'] for x in sorted_batch]
         trg_y_seqs = [x['trg_y'] for x in sorted_batch]
-        lengths = [len(seq) for seq in src_seqs]
+        lengths = [len(seq) for seq in src_char_seqs]
 
-        padded_src_seqs = pad_sequence(src_seqs, batch_first=True, padding_value=self.src_pad_idx)
-        padded_trg_x_seqs = pad_sequence(trg_x_seqs, batch_first=True, padding_value=self.trg_pad_idx)
-        padded_trg_y_seqs = pad_sequence(trg_y_seqs, batch_first=True, padding_value=self.trg_pad_idx)
+        padded_src_char_seqs = pad_sequence(src_char_seqs, batch_first=True, padding_value=self.char_src_pad_idx)
+        padded_src_word_seqs = pad_sequence(src_word_seqs, batch_first=True, padding_value=self.word_src_pad_idx)
+        padded_trg_x_seqs = pad_sequence(trg_x_seqs, batch_first=True, padding_value=self.char_trg_pad_idx)
+        padded_trg_y_seqs = pad_sequence(trg_y_seqs, batch_first=True, padding_value=self.char_trg_pad_idx)
         lengths = torch.tensor(lengths, dtype=torch.long)
 
-        return {'src': padded_src_seqs,
+        return {'src_char': padded_src_char_seqs,
+                'src_word': padded_src_word_seqs,
                 'trg_x': padded_trg_x_seqs,
                 'trg_y': padded_trg_y_seqs,
-                'src_lengths': lengths}
+                'src_lengths': lengths
+                }
 
 def set_seed(seed, cuda):
     random.seed(seed)
@@ -194,7 +233,8 @@ def train(model, dataloader, optimizer, criterion, device='cpu', teacher_forcing
     for batch in dataloader:
         optimizer.zero_grad()
         batch = {k: v.to(device) for k, v in batch.items()}
-        src = batch['src']
+        src_char = batch['src_char']
+        src_word = batch['src_word']
         trg_x = batch['trg_x']
         trg_y = batch['trg_y']
         src_lengths = batch['src_lengths']
@@ -204,7 +244,8 @@ def train(model, dataloader, optimizer, criterion, device='cpu', teacher_forcing
         #               trg_seqs=trg_x,
         #               teacher_forcing_prob=teacher_forcing_prob)
 
-        preds, attention_scores = model(src,
+        preds, attention_scores = model(src_char,
+                                        src_word,
                                         src_lengths,
                                         trg_x,
                                         teacher_forcing_prob=teacher_forcing_prob)
@@ -230,7 +271,8 @@ def evaluate(model, dataloader, criterion, device='cpu', teacher_forcing_prob=0)
     with torch.no_grad():
         for batch in dataloader:
             batch = {k: v.to(device) for k, v in batch.items()}
-            src = batch['src']
+            src_char = batch['src_char']
+            src_word = batch['src_word']
             trg_x = batch['trg_x']
             trg_y = batch['trg_y']
             src_lengths = batch['src_lengths']
@@ -240,7 +282,8 @@ def evaluate(model, dataloader, criterion, device='cpu', teacher_forcing_prob=0)
             #               trg_seqs=trg_x,
             #               teacher_forcing_prob=teacher_forcing_prob)
 
-            preds, attention_scores = model(src,
+            preds, attention_scores = model(src_char,
+                                            src_word,
                                             src_lengths,
                                             trg_x,
                                             teacher_forcing_prob=teacher_forcing_prob)
@@ -275,28 +318,19 @@ def inference(sampler, dataloader, preds_dir):
         logger.info(f'trg: ' + trg)
         logger.info(f'pred: ' + pred)
         logger.info(f'trans: ' + translated)
-        # print(src)
-        # print(trg)
-        # print(pred)
-        # print(translated)
-        # print(len(translated))
-        # train_log.write(f'src: ' + src)
-        # train_log.write('\n')
-        # train_log.write(f'trg: ' + trg)
-        # train_log.write('\n')
-        # train_log.write(f'pred: ' + pred)
-        # train_log.write('\n')
-        # train_log.write(f'trans: ' + translated)
-        # train_log.write('\n\n')
-        # train_preds.write(pred)
-        # train_preds.write('\n')
-        # train_preds_inf.write(translated)
-        # train_preds_inf.write('\n')
-    # train_log.close()
-    # train_preds.close()
-    # train_preds_inf.close()
     output_file.close()
 
+def get_morph_features(args, data, word_vocab):
+    morph_featurizer = MorphFeaturizer(args.analyzer_db_path)
+    if args.reload_files:
+        morph_featurizer.load_morph_features(args.morph_features_path)
+    else:
+        morph_featurizer.featurize_sentences(data)
+        if args.cache_files:
+            morph_featurizer.save_morph_features(args.morph_features_path)
+
+    morph_embeddings = morph_featurizer.create_morph_embeddings(word_vocab)
+    return morph_embeddings
 
 def main():
     parser = argparse.ArgumentParser()
@@ -398,6 +432,23 @@ def main():
         help="The dataset to do inference on."
     )
     parser.add_argument(
+        "--use_morph_features",
+        action="store_true",
+        help="Whether to use morphological features or not."
+    )
+    parser.add_argument(
+        "--analyzer_db_path",
+        type=str,
+        default=None,
+        help="Path to the anaylzer database."
+    )
+    parser.add_argument(
+        "--morph_features_path",
+        type=str,
+        default=None,
+        help="The path of the saved morphological features."
+    )
+    parser.add_argument(
         "--preds_dir",
         type=str,
         default=None,
@@ -426,16 +477,27 @@ def main():
     else:
         dataset = MT_Dataset.load_data_and_create_vectorizer(args.data_dir)
 
+    vectorizer = dataset.get_vectorizer()
+
     if args.cache_files:
         dataset.save_vectorizer(args.vectorizer_path)
 
-    vectorizer = dataset.get_vectorizer()
-    ENCODER_INPUT_DIM = len(vectorizer.src_vocab)
-    DECODER_INPUT_DIM = len(vectorizer.trg_vocab)
-    DECODER_OUTPUT_DIM = len(vectorizer.trg_vocab)
-    SRC_PAD_INDEX = vectorizer.src_vocab.pad_idx
-    TRG_PAD_INDEX = vectorizer.trg_vocab.pad_idx
-    TRG_SOS_INDEX = vectorizer.trg_vocab.sos_idx
+    if args.use_morph_features:
+        # we create morph features on the src side of the
+        # training data
+        train_src_data = [t.src for t in dataset.train_examples]
+        morph_embeddings = get_morph_features(args, train_src_data, vectorizer.src_vocab_word)
+
+    else:
+        morph_embeddings = None
+
+    ENCODER_INPUT_DIM = len(vectorizer.src_vocab_char)
+    DECODER_INPUT_DIM = len(vectorizer.trg_vocab_char)
+    DECODER_OUTPUT_DIM = len(vectorizer.trg_vocab_char)
+    CHAR_SRC_PAD_INDEX = vectorizer.src_vocab_char.pad_idx
+    WORD_SRC_PAD_INDEX = vectorizer.src_vocab_word.pad_idx
+    TRG_PAD_INDEX = vectorizer.trg_vocab_char.pad_idx
+    TRG_SOS_INDEX = vectorizer.trg_vocab_char.sos_idx
     # model = Seq2Seq(encoder_input_dim=ENCODER_INPUT_DIM,
     #                 encoder_embed_dim=args.embedding_dim,
     #                 encoder_hidd_dim=args.hidd_dim,
@@ -445,13 +507,16 @@ def main():
     #                 src_padding_idx=SRC_PAD_INDEX,
     #                 trg_padding_idx=TRG_PAD_INDEX)
 
+
     model = Seq2Seq(encoder_input_dim=ENCODER_INPUT_DIM,
                     encoder_embed_dim=args.embedding_dim,
                     encoder_hidd_dim=args.hidd_dim,
                     decoder_input_dim=DECODER_INPUT_DIM,
                     decoder_embed_dim=args.embedding_dim,
                     decoder_output_dim=DECODER_OUTPUT_DIM,
-                    src_padding_idx=SRC_PAD_INDEX,
+                    morph_embeddings=morph_embeddings,
+                    char_src_padding_idx=CHAR_SRC_PAD_INDEX,
+                    word_src_padding_idx=WORD_SRC_PAD_INDEX,
                     trg_padding_idx=TRG_PAD_INDEX,
                     trg_sos_idx=TRG_SOS_INDEX)
 
@@ -459,7 +524,11 @@ def main():
     criterion = nn.CrossEntropyLoss(ignore_index=TRG_PAD_INDEX)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
                                                     patience=2, factor=0.5)
-    collator = Collator(SRC_PAD_INDEX, TRG_PAD_INDEX)
+
+    collator = Collator(char_src_pad_idx=CHAR_SRC_PAD_INDEX,
+                        char_trg_pad_idx=TRG_PAD_INDEX,
+                        word_src_pad_idx=WORD_SRC_PAD_INDEX)
+
     model = model.to(device)
 
     if args.do_train:
@@ -491,8 +560,8 @@ def main():
             logger.info(f'\tTrain Loss: {train_loss:.4f}   |   Dev Loss: {dev_loss:.4f}')
 
     if args.do_train and args.visualize_loss:
-        plt.plot(range(1, 1 + args.num_epochs), np.asarray(train_losses), 'b-', color='blue', label='Training')
-        plt.plot(range(1, 1 + args.num_epochs), np.asarray(dev_losses), 'b-', color='orange', label='Evaluation')
+        plt.plot(range(1, 1 + args.num_train_epochs), np.asarray(train_losses), 'b-', color='blue', label='Training')
+        plt.plot(range(1, 1 + args.num_train_epochs), np.asarray(dev_losses), 'b-', color='orange', label='Evaluation')
         plt.xlabel('Epoch')
         plt.ylabel('Loss')
         plt.legend()
@@ -517,7 +586,9 @@ def main():
         model = model.to(device)
         dataset.set_split(args.inference_mode)
         dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=collator)
-        sampler = NMT_Batch_Sampler(model, vectorizer.src_vocab, vectorizer.trg_vocab)
+        sampler = NMT_Batch_Sampler(model, vectorizer.src_vocab_char,
+                                    vectorizer.src_vocab_word,
+                                    vectorizer.trg_vocab_char)
         inference(sampler, dataloader, args.preds_dir)
 
 
