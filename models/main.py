@@ -99,7 +99,7 @@ class Vectorizer:
         trg_y_indices = indices + [self.trg_vocab_char.eos_idx]
         return trg_x_indices, trg_y_indices
 
-    def vectorize(self, src, trg):
+    def vectorize(self, src, trg, src_g, trg_g):
         """
         Args:
           - src (str): The src sequence
@@ -112,6 +112,8 @@ class Vectorizer:
         """
         src = src
         trg = trg
+        src_g = src_g
+        trg_g = trg_g
 
         vectorized_src_char, vectorized_src_word = self.get_src_indices(src)
         vectorized_trg_x, vectorized_trg_y = self.get_trg_indices(trg)
@@ -119,7 +121,9 @@ class Vectorizer:
         return {'src_char': torch.tensor(vectorized_src_char, dtype=torch.long),
                 'src_word': torch.tensor(vectorized_src_word, dtype=torch.long),
                 'trg_x': torch.tensor(vectorized_trg_x, dtype=torch.long),
-                'trg_y': torch.tensor(vectorized_trg_y, dtype=torch.long)
+                'trg_y': torch.tensor(vectorized_trg_y, dtype=torch.long),
+                'src_g': src_g,
+                'trg_g': trg_g
                }
 
     def to_serializable(self):
@@ -183,7 +187,8 @@ class MT_Dataset(Dataset):
     def __getitem__(self, index):
         example = self.split_examples[index]
         src, trg = example.src, example.trg
-        vectorized = self.vectorizer.vectorize(src, trg)
+        src_g, trg_g = example.src_g, example.trg_g
+        vectorized = self.vectorizer.vectorize(src, trg, src_g, trg_g)
         return vectorized
 
     def __len__(self):
@@ -202,9 +207,13 @@ class Collator:
 
         src_char_seqs = [x['src_char'] for x in sorted_batch]
         src_word_seqs = [x['src_word'] for x in sorted_batch]
+        src_g_seqs = [x['src_g'] for x in sorted_batch]
+
         assert len(src_word_seqs) == len(src_char_seqs)
+
         trg_x_seqs = [x['trg_x'] for x in sorted_batch]
         trg_y_seqs = [x['trg_y'] for x in sorted_batch]
+        trg_g_seqs = [x['trg_g'] for x in sorted_batch]
         lengths = [len(seq) for seq in src_char_seqs]
 
         padded_src_char_seqs = pad_sequence(src_char_seqs, batch_first=True, padding_value=self.char_src_pad_idx)
@@ -217,7 +226,9 @@ class Collator:
                 'src_word': padded_src_word_seqs,
                 'trg_x': padded_trg_x_seqs,
                 'trg_y': padded_trg_y_seqs,
-                'src_lengths': lengths
+                'src_lengths': lengths,
+                'src_g': src_g_seqs,
+                'trg_g': trg_g_seqs
                 }
 
 def set_seed(seed, cuda):
@@ -307,17 +318,26 @@ def inference(sampler, dataloader, preds_dir):
         src = sampler.get_src_sentence(0)
         trg = sampler.get_trg_sentence(0)
         pred = sampler.get_pred_sentence(0)
+        src_gender = sampler.get_src_gender(0)
+        trg_gender = sampler.get_trg_gender(0)
 
         translated = sampler.translate_sentence(src)
+
+        correct = 'CORRECT!' if trg == translated else 'INCORRECT!'
 
         output_file.write(pred)
         output_file.write('\n')
         output_inf_file.write(translated)
         output_inf_file.write('\n')
-        logger.info(f'src: ' + src)
-        logger.info(f'trg: ' + trg)
-        logger.info(f'pred: ' + pred)
-        logger.info(f'trans: ' + translated)
+        logger.info(f'src: {src}')
+        logger.info(f'trg: {trg}')
+        logger.info(f'pred: {pred}')
+        logger.info(f'trans: {translated}')
+        logger.info(f'src gender: {src_gender}')
+        logger.info(f'trg gender: {trg_gender}')
+        logger.info(f'res: {correct}')
+
+        logger.info('\n\n')
     output_file.close()
 
 def get_morph_features(args, data, word_vocab):
