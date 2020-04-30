@@ -340,7 +340,7 @@ def main():
         type=str,
         required=True,
         help="The input data dir. Should contain the src and trg files."
-        )
+    )
     parser.add_argument(
         "--vectorizer_path",
         default=None,
@@ -351,18 +351,18 @@ def main():
         "--cache_files",
         action="store_true",
         help="Whether to cache the vocab and the vectorizer objects or not"
-        )
+    )
     parser.add_argument(
         "--reload_files",
         action="store_true",
         help="Whether to reload the vocab and the vectorizer objects from a cached file"
-        )
+    )
     parser.add_argument(
         "--num_train_epochs",
         default=20,
         type=int,
         help="Total number of training epochs to perform."
-        )
+    )
     parser.add_argument(
         "--embedding_dim",
         default=32,
@@ -391,13 +391,13 @@ def main():
         "--use_cuda",
         action="store_true",
         help="Whether to use the gpu or not."
-        )
+    )
     parser.add_argument(
         "--seed",
         default=21,
         type=int,
         help="Random seed."
-        )
+    )
     parser.add_argument(
         "--model_path",
         type=str,
