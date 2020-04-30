@@ -32,7 +32,7 @@ class RawDataset:
     def __init__(self, data_dir):
         self.train_examples = self.get_train_examples(data_dir)
         self.dev_examples = self.get_dev_examples(data_dir)
-        self.test_examples = self.get_dev_examples(data_dir)
+        self.test_examples = self.get_test_examples(data_dir)
 
     def create_examples(self, src_path, trg_path):
 
@@ -63,8 +63,8 @@ class RawDataset:
 
     def get_train_examples(self, data_dir):
         """Reads the train examples of the dataset"""
-        return self.create_examples(os.path.join(data_dir, 'merged_data/D-set-train.arin+S-set-F'),
-                                    os.path.join(data_dir, 'merged_data/D-set-train.ar.M+S-set-M'))
+        return self.create_examples(os.path.join(data_dir, 'D-set-train.arin'),
+                                    os.path.join(data_dir, 'D-set-train.ar.M'))
 
     def get_dev_examples(self, data_dir):
         """Reads the dev examples of the dataset"""
