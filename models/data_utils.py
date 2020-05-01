@@ -63,18 +63,18 @@ class RawDataset:
 
     def get_train_examples(self, data_dir):
         """Reads the train examples of the dataset"""
-        return self.create_examples(os.path.join(data_dir, 'D-set-train.arin'),
-                                    os.path.join(data_dir, 'D-set-train.ar.M'))
+        return self.create_examples(os.path.join(data_dir, 'D-set-train.ar.M'),
+                                    os.path.join(data_dir, 'D-set-train.ar.F'))
 
     def get_dev_examples(self, data_dir):
         """Reads the dev examples of the dataset"""
-        return self.create_examples(os.path.join(data_dir, 'D-set-dev.arin'),
-                                    os.path.join(data_dir, 'D-set-dev.ar.M'))
+        return self.create_examples(os.path.join(data_dir, 'D-set-dev.ar.M'),
+                                    os.path.join(data_dir, 'D-set-dev.ar.F'))
 
     def get_test_examples(self, data_dir):
         """Reads the test examples of the dataset"""
-        return self.create_examples(os.path.join(data_dir, 'D-set-test.arin'),
-                                    os.path.join(data_dir, 'D-set-test.ar.M'))
+        return self.create_examples(os.path.join(data_dir, 'D-set-test.ar.M'),
+                                    os.path.join(data_dir, 'D-set-test.ar.F'))
 
 class Vocabulary:
     """Base vocabulary class"""
@@ -146,6 +146,25 @@ class SeqVocabulary(Vocabulary):
 
     def lookup_token(self, token):
         return self.token_to_idx.get(token, self.unk_idx)
+
+class GenderVocabulary(Vocabulary):
+    """Gender vocabulary class"""
+    def __init__(self, token_to_idx=None, pad_token='<pad>'):
+
+        super(GenderVocabulary, self).__init__(token_to_idx)
+
+        self.pad_token = pad_token
+        self.pad_idx = self.add_token(self.pad_token)
+
+    def to_serializable(self):
+        contents = super(GenderVocabulary, self).to_serializable()
+        contents.update({'pad_token': self.pad_token})
+        return contents
+
+    @classmethod
+    def from_serializable(cls, contents):
+        return cls(**contents)
+
 
 class MorphFeaturizer:
     """Morphological Featurizer Class"""
