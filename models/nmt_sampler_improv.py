@@ -3,11 +3,16 @@ import numpy as np
 import re
 
 class NMT_Batch_Sampler:
-    def __init__(self, model, src_vocab_char, src_vocab_word, trg_vocab):
+    def __init__(self, model, src_vocab_char,
+                 src_vocab_word, trg_vocab,
+                 src_gender_vocab, trg_gender_vocab):
+
         self.model = model
         self.src_vocab_char = src_vocab_char
         self.src_vocab_word = src_vocab_word
         self.trg_vocab = trg_vocab
+        self.src_gender_vocab = src_gender_vocab
+        self.trg_gender_vocab = trg_gender_vocab
 
     def update_batch(self, batch):
         self.sample_batch = batch
@@ -55,6 +60,14 @@ class NMT_Batch_Sampler:
             else:
                 sentence.append(vocab.lookup_index(i))
         return ''.join(sentence)
+
+    def get_trg_gender(self, index):
+        trg_gender = self.sample_batch['trg_g'][index].cpu().detach().numpy().tolist()
+        return self.trg_gender_vocab.lookup_index(trg_gender)
+
+    def get_src_gender(self, index):
+        src_gender = self.sample_batch['src_g'][index].cpu().detach().numpy().tolist()
+        return self.src_gender_vocab.lookup_index(src_gender)
 
     def translate_sentence(self, sentence, max_len=512):
         # vectorizing the src sentence on the char level and word level
