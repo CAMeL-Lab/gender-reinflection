@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 import torch.optim as optim
 from torch.nn.utils.rnn import pad_sequence
-from data_utils import SeqVocabulary, RawDataset, MorphFeaturizer
+from data_utils import SeqVocabulary, GenderVocabulary, RawDataset, MorphFeaturizer
 import json
 import random
 import re
@@ -21,14 +21,19 @@ logger = logging.getLogger(__name__)
 class Vectorizer:
     """Vectorizer Class"""
     def __init__(self, src_vocab_char, trg_vocab_char,
-                 src_vocab_word, trg_vocab_word):
+                 src_vocab_word, trg_vocab_word,
+                 src_gender_vocab, trg_gender_vocab):
         """src_vocab_char and trg_vocab_char are on the char
         level. src_vocab_word and trg_vocab_word are on the
-        word level"""
+        word level. src_gender_vocab and trg_gender_vocab
+        are on the sentence level"""
+
         self.src_vocab_char = src_vocab_char
         self.trg_vocab_char = trg_vocab_char
         self.src_vocab_word = src_vocab_word
         self.trg_vocab_word = trg_vocab_word
+        self.src_gender_vocab = src_gender_vocab
+        self.trg_gender_vocab = trg_gender_vocab
 
     @classmethod
     def create_vectorizer(cls, data_examples):
@@ -39,10 +44,14 @@ class Vectorizer:
         trg_vocab_char = SeqVocabulary()
         src_vocab_word = SeqVocabulary()
         trg_vocab_word = SeqVocabulary()
+        trg_gender_vocab = GenderVocabulary()
+        src_gender_vocab = GenderVocabulary()
 
         for ex in data_examples:
             src = ex.src
             trg = ex.trg
+            src_gender = ex.src_g
+            trg_gender = ex.trg_g
 
             # splitting by a regex to maintain the space
             src = re.split(r'(\s+)', src)
@@ -56,7 +65,12 @@ class Vectorizer:
                 trg_vocab_word.add_token(word)
                 trg_vocab_char.add_many(list(word))
 
-        return cls(src_vocab_char, trg_vocab_char, src_vocab_word, trg_vocab_word)
+            src_gender_vocab.add_token(src_gender)
+            trg_gender_vocab.add_token(trg_gender)
+
+        return cls(src_vocab_char, trg_vocab_char,
+                src_vocab_word, trg_vocab_word,
+                src_gender_vocab, trg_gender_vocab)
 
     def get_src_indices(self, seq):
         """
@@ -117,20 +131,24 @@ class Vectorizer:
 
         vectorized_src_char, vectorized_src_word = self.get_src_indices(src)
         vectorized_trg_x, vectorized_trg_y = self.get_trg_indices(trg)
+        vectorized_src_gender = self.src_gender_vocab.lookup_token(src_g)
+        vectorized_trg_gender = self.trg_gender_vocab.lookup_token(trg_g)
 
         return {'src_char': torch.tensor(vectorized_src_char, dtype=torch.long),
                 'src_word': torch.tensor(vectorized_src_word, dtype=torch.long),
                 'trg_x': torch.tensor(vectorized_trg_x, dtype=torch.long),
                 'trg_y': torch.tensor(vectorized_trg_y, dtype=torch.long),
-                'src_g': src_g,
-                'trg_g': trg_g
+                'src_g': torch.tensor(vectorized_src_gender, dtype=torch.long),
+                'trg_g': torch.tensor(vectorized_trg_gender, dtype=torch.long)
                }
 
     def to_serializable(self):
         return {'src_vocab_char': self.src_vocab_char.to_serializable(),
                 'trg_vocab_char': self.trg_vocab_char.to_serializable(),
                 'src_vocab_word': self.src_vocab_word.to_serializable(),
-                'trg_vocab_word': self.trg_vocab_word.to_serializable()
+                'trg_vocab_word': self.trg_vocab_word.to_serializable(),
+                'src_gender_vocab': self.src_gender_vocab.to_serializable(),
+                'trg_gender_vocab': self.trg_gender_vocab.to_serializable()
                }
 
     @classmethod
@@ -139,7 +157,11 @@ class Vectorizer:
         src_vocab_word = SeqVocabulary.from_serializable(contents['src_vocab_word'])
         trg_vocab_char = SeqVocabulary.from_serializable(contents['trg_vocab_char'])
         trg_vocab_word = SeqVocabulary.from_serializable(contents['trg_vocab_word'])
-        return cls(src_vocab_char, trg_vocab_char, src_vocab_word, trg_vocab_word)
+        src_gender_vocab = GenderVocabulary.from_serializable(contents['src_gender_vocab'])
+        trg_gender_vocab = GenderVocabulary.from_serializable(contents['trg_gender_vocab'])
+        return cls(src_vocab_char, trg_vocab_char,
+                   src_vocab_word, trg_vocab_word,
+                   src_gender_vocab, trg_gender_vocab)
 
 
 class MT_Dataset(Dataset):
@@ -218,10 +240,16 @@ class Collator:
 
         padded_src_char_seqs = pad_sequence(src_char_seqs, batch_first=True, padding_value=self.char_src_pad_idx)
         padded_src_word_seqs = pad_sequence(src_word_seqs, batch_first=True, padding_value=self.word_src_pad_idx)
+        # padded_src_g_seqs = pad_sequence(src_g_seqs, batch_first=True, padding_value=self.char_src_pad_idx)
+
         padded_trg_x_seqs = pad_sequence(trg_x_seqs, batch_first=True, padding_value=self.char_trg_pad_idx)
         padded_trg_y_seqs = pad_sequence(trg_y_seqs, batch_first=True, padding_value=self.char_trg_pad_idx)
+        # padded_trg_g_seqs = pad_sequence(trg_g_seqs, batch_first=True, padding_value=self.char_trg_pad_idx)
+        src_g_seqs = torch.tensor(src_g_seqs, dtype=torch.long)
+        trg_g_seqs = torch.tensor(trg_g_seqs, dtype=torch.long)
         lengths = torch.tensor(lengths, dtype=torch.long)
 
+        #TODO: find a better way to integrate gender info in the batch!
         return {'src_char': padded_src_char_seqs,
                 'src_word': padded_src_word_seqs,
                 'trg_x': padded_trg_x_seqs,
@@ -606,9 +634,12 @@ def main():
         model = model.to(device)
         dataset.set_split(args.inference_mode)
         dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=collator)
-        sampler = NMT_Batch_Sampler(model, vectorizer.src_vocab_char,
+        sampler = NMT_Batch_Sampler(model,
+                                    vectorizer.src_vocab_char,
                                     vectorizer.src_vocab_word,
-                                    vectorizer.trg_vocab_char)
+                                    vectorizer.trg_vocab_char,
+                                    vectorizer.src_gender_vocab,
+                                    vectorizer.trg_gender_vocab)
         inference(sampler, dataloader, args.preds_dir)
 
 
