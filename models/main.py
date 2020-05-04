@@ -12,6 +12,7 @@ import argparse
 from seq2seq_improved import Seq2Seq
 # from nmt_sampler import NMT_Batch_Sampler
 from nmt_sampler_improv import NMT_Batch_Sampler
+from beam_decoder import BeamSampler
 import matplotlib.pyplot as plt
 import logging
 
@@ -245,8 +246,6 @@ class Collator:
         padded_trg_x_seqs = pad_sequence(trg_x_seqs, batch_first=True, padding_value=self.char_trg_pad_idx)
         padded_trg_y_seqs = pad_sequence(trg_y_seqs, batch_first=True, padding_value=self.char_trg_pad_idx)
         # padded_trg_g_seqs = pad_sequence(trg_g_seqs, batch_first=True, padding_value=self.char_trg_pad_idx)
-        src_g_seqs = torch.tensor(src_g_seqs, dtype=torch.long)
-        trg_g_seqs = torch.tensor(trg_g_seqs, dtype=torch.long)
         lengths = torch.tensor(lengths, dtype=torch.long)
 
         #TODO: find a better way to integrate gender info in the batch!
@@ -338,7 +337,7 @@ def evaluate(model, dataloader, criterion, device='cpu', teacher_forcing_prob=0)
 
     return epoch_loss / len(dataloader)
 
-def inference(sampler, dataloader, preds_dir):
+def inference(sampler, beam_sampler, dataloader, preds_dir):
     output_inf_file = open(preds_dir + '.inf', mode='w', encoding='utf8')
     output_file = open(preds_dir, mode='w', encoding='utf8')
     for batch in dataloader:
@@ -350,8 +349,10 @@ def inference(sampler, dataloader, preds_dir):
         trg_gender = sampler.get_trg_gender(0)
 
         translated = sampler.translate_sentence(src)
+        beam_trans = beam_sampler.beam_decode(src, topk=1, beam_width=10, max_len=512)
 
         correct = 'CORRECT!' if trg == translated else 'INCORRECT!'
+        different = 'SAME!' if translated == beam_trans else 'DIFF!'
 
         output_file.write(pred)
         output_file.write('\n')
@@ -361,10 +362,11 @@ def inference(sampler, dataloader, preds_dir):
         logger.info(f'trg: {trg}')
         logger.info(f'pred: {pred}')
         logger.info(f'trans: {translated}')
+        logger.info(f'beam: {beam_trans}')
         logger.info(f'src gender: {src_gender}')
         logger.info(f'trg gender: {trg_gender}')
         logger.info(f'res: {correct}')
-
+        logger.info(f'dec: {different}')
         logger.info('\n\n')
     output_file.close()
 
@@ -640,7 +642,15 @@ def main():
                                     vectorizer.trg_vocab_char,
                                     vectorizer.src_gender_vocab,
                                     vectorizer.trg_gender_vocab)
-        inference(sampler, dataloader, args.preds_dir)
+
+        beam_sampler =  BeamSampler(model,
+                                    vectorizer.src_vocab_char,
+                                    vectorizer.src_vocab_word,
+                                    vectorizer.trg_vocab_char,
+                                    vectorizer.src_gender_vocab,
+                                    vectorizer.trg_gender_vocab)
+
+        inference(sampler, beam_sampler, dataloader, args.preds_dir)
 
 
 if __name__ == "__main__":
