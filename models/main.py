@@ -247,6 +247,8 @@ class Collator:
         padded_trg_y_seqs = pad_sequence(trg_y_seqs, batch_first=True, padding_value=self.char_trg_pad_idx)
         # padded_trg_g_seqs = pad_sequence(trg_g_seqs, batch_first=True, padding_value=self.char_trg_pad_idx)
         lengths = torch.tensor(lengths, dtype=torch.long)
+        src_g_seqs = torch.tensor(src_g_seqs, dtype=torch.long)
+        trg_g_seqs = torch.tensor(trg_g_seqs, dtype=torch.long)
 
         #TODO: find a better way to integrate gender info in the batch!
         return {'src_char': padded_src_char_seqs,
@@ -340,6 +342,9 @@ def evaluate(model, dataloader, criterion, device='cpu', teacher_forcing_prob=0)
 def inference(sampler, beam_sampler, dataloader, preds_dir):
     output_inf_file = open(preds_dir + '.inf', mode='w', encoding='utf8')
     output_file = open(preds_dir, mode='w', encoding='utf8')
+    output_beam_g = open(preds_dir + '.beam_greedy', mode='w', encoding='utf8')
+    output_beam = open(preds_dir + '.beam', mode='w', encoding='utf8')
+
     for batch in dataloader:
         sampler.update_batch(batch)
         src = sampler.get_src_sentence(0)
@@ -349,24 +354,33 @@ def inference(sampler, beam_sampler, dataloader, preds_dir):
         trg_gender = sampler.get_trg_gender(0)
 
         translated = sampler.translate_sentence(src)
-        beam_trans = beam_sampler.beam_decode(src, topk=1, beam_width=10, max_len=512)
+        beam_trans_10 = beam_sampler.beam_decode(src, topk=1, beam_width=10, max_len=512)
+        beam_trans_1 = beam_sampler.beam_decode(src, topk=1, beam_width=1, max_len=512)
 
         correct = 'CORRECT!' if trg == translated else 'INCORRECT!'
-        different = 'SAME!' if translated == beam_trans else 'DIFF!'
+        different_g = 'SAME!' if translated == beam_trans_1 else 'DIFF!'
+        different_10 = 'SAME!' if translated == beam_trans_10 else 'DIFF!'
 
         output_file.write(pred)
         output_file.write('\n')
         output_inf_file.write(translated)
         output_inf_file.write('\n')
+        output_beam_g.write(beam_trans_1)
+        output_beam_g.write('\n')
+        output_beam.write(beam_trans_10)
+        output_beam.write('\n')
+
         logger.info(f'src: {src}')
         logger.info(f'trg: {trg}')
         logger.info(f'pred: {pred}')
-        logger.info(f'trans: {translated}')
-        logger.info(f'beam: {beam_trans}')
+        logger.info(f'greedy: {translated}')
+        logger.info(f'beam (1): {beam_trans_1}')
+        logger.info(f'beam (10): {beam_trans_10}')
         logger.info(f'src gender: {src_gender}')
         logger.info(f'trg gender: {trg_gender}')
         logger.info(f'res: {correct}')
-        logger.info(f'dec: {different}')
+        logger.info(f'greedy?: {different_g}')
+        logger.info(f'no greedy?: {different_10}')
         logger.info('\n\n')
     output_file.close()
 
