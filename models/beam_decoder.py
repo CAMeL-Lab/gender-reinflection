@@ -27,6 +27,11 @@ class BeamSearchNode:
         # the log prob will be normalized by the length of the sentence
         return self.logp / float(self.leng - 1 + 1e-6) + alpha * reward
 
+    def __lt__(self, other):
+       """Overriding the less than function to handle
+       the case if two nodes have the same log_prob so
+       they can fit in the priority queue"""
+       return self.logp < other.logp
 
 class BeamSampler(NMT_Batch_Sampler):
     """A subclass of NMT_Batch_Sampler that uses beam_search for decoding"""
@@ -120,7 +125,7 @@ class BeamSampler(NMT_Batch_Sampler):
             score, n = nodes.get()
             decoder_input = n.wordid
             decoder_hidden = n.h
- 
+
             # if we predict the </s> token, this means we finished decoding a sentence
             if n.wordid.item() == self.trg_vocab.eos_idx and n.prevNode != None:
                 endnodes.append((score, n))
@@ -132,10 +137,10 @@ class BeamSampler(NMT_Batch_Sampler):
                     continue
 
             # decode for one step using decoder
-            decoder_output, decoder_hidden, atten_scores, context_vectors = self.model.decoder(decoder_input, 
-                                                                                        encoder_outputs, 
-                                                                                        decoder_hidden, 
-                                                                                        context_vectors, 
+            decoder_output, decoder_hidden, atten_scores, context_vectors = self.model.decoder(decoder_input,
+                                                                                        encoder_outputs,
+                                                                                        decoder_hidden,
+                                                                                        context_vectors,
                                                                                         attention_mask=attention_mask)
 
             # obtaining log probs from the decoder predictions
