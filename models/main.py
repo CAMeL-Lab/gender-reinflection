@@ -345,6 +345,9 @@ def inference(sampler, beam_sampler, dataloader, preds_dir):
     output_beam_g = open(preds_dir + '.beam_greedy', mode='w', encoding='utf8')
     output_beam = open(preds_dir + '.beam', mode='w', encoding='utf8')
 
+    greedy_stats = {}
+    beam_stats = {}
+
     for batch in dataloader:
         sampler.update_batch(batch)
         src = sampler.get_src_sentence(0)
@@ -361,6 +364,15 @@ def inference(sampler, beam_sampler, dataloader, preds_dir):
         different_g = 'SAME!' if translated == beam_trans_1 else 'DIFF!'
         different_10 = 'SAME!' if translated == beam_trans_10 else 'DIFF!'
 
+        if beam_trans_1 == trg:
+            greedy_stats[(src_gender, trg_gender, 'correct')] = 1 + greedy_stats.get((src_gender, trg_gender, 'correct'), 0)
+        else:
+            greedy_stats[(src_gender, trg_gender, 'incorrect')] = 1 + greedy_stats.get((src_gender, trg_gender, 'incorrect'), 0)
+        if beam_trans_10 == trg:
+            beam_stats[(src_gender, trg_gender, 'correct')] = 1 + beam_stats.get((src_gender, trg_gender, 'correct'), 0)
+        else:
+            beam_stats[(src_gender, trg_gender, 'incorrect')] = 1 + beam_stats.get((src_gender, trg_gender, 'incorrect'), 0)
+
         output_file.write(pred)
         output_file.write('\n')
         output_inf_file.write(translated)
@@ -370,19 +382,38 @@ def inference(sampler, beam_sampler, dataloader, preds_dir):
         output_beam.write(beam_trans_10)
         output_beam.write('\n')
 
-        logger.info(f'src: {src}')
-        logger.info(f'trg: {trg}')
-        logger.info(f'pred: {pred}')
-        logger.info(f'greedy: {translated}')
-        logger.info(f'beam (1): {beam_trans_1}')
-        logger.info(f'beam (10): {beam_trans_10}')
-        logger.info(f'src gender: {src_gender}')
-        logger.info(f'trg gender: {trg_gender}')
-        logger.info(f'res: {correct}')
-        logger.info(f'greedy?: {different_g}')
-        logger.info(f'no greedy?: {different_10}')
+        logger.info(f'src:\t\t\t{src}')
+        logger.info(f'trg:\t\t\t{trg}')
+        logger.info(f'greedy:\t\t\t{translated}')
+        logger.info(f'beam:\t\t\t{beam_trans_10}')
+        logger.info(f'src_g:\t\t\t{src_gender}')
+        logger.info(f'trg_g:\t\t\t{trg_gender}')
+        #logger.info(f'src gender:\t{src_gender}')
+        #logger.info(f'trg gender:\t{trg_gender}')
+        logger.info(f'res:\t\t\t{correct}')
+        logger.info(f'beam==greedy?:\t\t{different_10}')
         logger.info('\n\n')
     output_file.close()
+
+    logger.info('*******STATS*******')
+    assert sum([greedy_stats[x] for x in greedy_stats]) == sum([beam_stats[x] for x in beam_stats])
+    total_examples = sum([greedy_stats[x] for x in greedy_stats])
+    logger.info(f'TOTAL EXAMPLES: {total_examples}')
+    logger.info('\n')
+    correct_greedy = {(x[0], x[1]): greedy_stats[x] for x in greedy_stats if x[2] == 'correct'}
+    incorrect_greedy = {(x[0], x[1]): greedy_stats[x] for x in greedy_stats if x[2] == 'incorrect'}
+    logger.info('Results using greedy decoding:')
+    for x in correct_greedy:
+        logger.info(f'{x[0]}->{x[1]}')
+        logger.info(f'\tCorrect: {correct_greedy.get(x, 0)}\tIncorrect: {incorrect_greedy.get(x, 0)}')
+
+    logger.info('\n')
+    correct_beam = {(x[0], x[1]): beam_stats[x] for x in beam_stats if x[2] == 'correct'}
+    incorrect_beam = {(x[0], x[1]): beam_stats[x] for x in beam_stats if x[2] == 'incorrect'}
+    logger.info('Results using beam decoding:')
+    for x in correct_beam:
+        logger.info(f'{x[0]}->{x[1]}')
+        logger.info(f'\tCorrect: {correct_beam.get(x, 0)}\tIncorrect: {incorrect_beam.get(x, 0)}')
 
 def get_morph_features(args, data, word_vocab):
     morph_featurizer = MorphFeaturizer(args.analyzer_db_path)
