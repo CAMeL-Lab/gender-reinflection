@@ -116,7 +116,7 @@ class NMT_Batch_Sampler:
 
         # intializing the trg sequences to the <s> token
         trg_seqs = [self.trg_vocab.sos_idx]
-        print(vectorized_trg_gender, flush=True)
+
         with torch.no_grad():
             for i in range(max_len):
                 y_t = torch.tensor([trg_seqs[-1]], dtype=torch.long)
