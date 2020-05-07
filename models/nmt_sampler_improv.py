@@ -22,12 +22,15 @@ class NMT_Batch_Sampler:
         trg_x = batch['trg_x']
         trg_y = batch['trg_y']
         src_lengths = batch['src_lengths']
+        trg_gender = batch['trg_g']
 
-        preds, attention_scores = self.model(src_char,
-                                            src_word,
-                                            src_lengths,
-                                            trg_x,
-                                            teacher_forcing_prob=0)
+       # turn off teacher forcing during inference
+        preds, attention_scores = self.model(char_src_seqs=src_char,
+                                             word_src_seqs=src_word,
+                                             src_seqs_lengths=src_lengths,
+                                             trg_seqs=trg_x,
+                                             trg_gender=trg_gender,
+                                             teacher_forcing_prob=0)
 
         # preds shape: [batch_size, trg_seq_len, output_dim]
 
@@ -69,7 +72,7 @@ class NMT_Batch_Sampler:
         src_gender = self.sample_batch['src_g'][index].cpu().detach().numpy().tolist()
         return self.src_gender_vocab.lookup_index(src_gender)
 
-    def translate_sentence(self, sentence, max_len=512):
+    def translate_sentence(self, sentence, trg_gender, max_len=512):
         # vectorizing the src sentence on the char level and word level
 
         sentence = re.split(r'(\s+)', sentence)
@@ -87,10 +90,14 @@ class NMT_Batch_Sampler:
         # getting sentence length
         src_sentence_length = [len(vectorized_src_sentence_char)]
 
+        # vectorizing the trg gender
+        vectorized_trg_gender = self.trg_gender_vocab.lookup_token(trg_gender)
+
         # converting the lists to tensors
         vectorized_src_sentence_char = torch.tensor([vectorized_src_sentence_char], dtype=torch.long)
         vectorized_src_sentence_word = torch.tensor([vectorized_src_sentence_word], dtype=torch.long)
         src_sentence_length = torch.tensor(src_sentence_length, dtype=torch.long)
+        vectorized_trg_gender = torch.tensor([vectorized_trg_gender], dtype=torch.long)
 
         # passing the src sentence to the encoder
         with torch.no_grad():
@@ -109,17 +116,18 @@ class NMT_Batch_Sampler:
 
         # intializing the trg sequences to the <s> token
         trg_seqs = [self.trg_vocab.sos_idx]
-
+        print(vectorized_trg_gender, flush=True)
         with torch.no_grad():
             for i in range(max_len):
                 y_t = torch.tensor([trg_seqs[-1]], dtype=torch.long)
 
                 # do a single decoder step
-                prediction, decoder_h_t, atten_scores, context_vectors = self.model.decoder(y_t,
-                                                                                          encoder_outputs,
-                                                                                          decoder_h_t,
-                                                                                          context_vectors,
-                                                                                          attention_mask=attention_mask)
+                prediction, decoder_h_t, atten_scores, context_vectors = self.model.decoder(trg_seqs=y_t,
+                                                                                            trg_gender=vectorized_trg_gender,
+                                                                                            encoder_outputs=encoder_outputs,
+                                                                                            decoder_h_t=decoder_h_t,
+                                                                                            context_vectors=context_vectors,
+                                                                                            attention_mask=attention_mask)
 
                 # getting the most probable prediciton
                 max_pred = torch.argmax(prediction, dim=1).item()
