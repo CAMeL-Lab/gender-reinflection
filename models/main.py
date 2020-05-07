@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 import torch.optim as optim
 from torch.nn.utils.rnn import pad_sequence
-from data_utils import SeqVocabulary, GenderVocabulary, RawDataset, MorphFeaturizer
+from data_utils import Vocabulary, SeqVocabulary, GenderVocabulary, RawDataset, MorphFeaturizer
 import json
 import random
 import re
@@ -45,8 +45,8 @@ class Vectorizer:
         trg_vocab_char = SeqVocabulary()
         src_vocab_word = SeqVocabulary()
         trg_vocab_word = SeqVocabulary()
-        trg_gender_vocab = GenderVocabulary()
-        src_gender_vocab = GenderVocabulary()
+        trg_gender_vocab = Vocabulary()
+        src_gender_vocab = Vocabulary()
 
         for ex in data_examples:
             src = ex.src
@@ -250,7 +250,6 @@ class Collator:
         src_g_seqs = torch.tensor(src_g_seqs, dtype=torch.long)
         trg_g_seqs = torch.tensor(trg_g_seqs, dtype=torch.long)
 
-        #TODO: find a better way to integrate gender info in the batch!
         return {'src_char': padded_src_char_seqs,
                 'src_word': padded_src_word_seqs,
                 'trg_x': padded_trg_x_seqs,
@@ -278,17 +277,15 @@ def train(model, dataloader, optimizer, criterion, device='cpu', teacher_forcing
         trg_x = batch['trg_x']
         trg_y = batch['trg_y']
         src_lengths = batch['src_lengths']
+        trg_gender = batch['trg_g']
 
-        # preds = model(src_seqs=src,
-        #               src_seqs_lengths=src_lengths,
-        #               trg_seqs=trg_x,
-        #               teacher_forcing_prob=teacher_forcing_prob)
-
-        preds, attention_scores = model(src_char,
-                                        src_word,
-                                        src_lengths,
-                                        trg_x,
-                                        teacher_forcing_prob=teacher_forcing_prob)
+        preds, attention_scores = model(char_src_seqs=src_char,
+                                        word_src_seqs=src_word,
+                                        src_seqs_lengths=src_lengths,
+                                        trg_seqs=trg_x,
+                                        trg_gender=trg_gender,
+                                        teacher_forcing_prob=teacher_forcing_prob
+                                        )
 
         # CrossEntropysLoss accepts matrices always! 
         # the preds must be of size (N, C) where C is the number 
@@ -316,17 +313,16 @@ def evaluate(model, dataloader, criterion, device='cpu', teacher_forcing_prob=0)
             trg_x = batch['trg_x']
             trg_y = batch['trg_y']
             src_lengths = batch['src_lengths']
+            trg_gender = batch['trg_g']
 
-            # preds = model(src_seqs=src,
-            #               src_seqs_lengths=src_lengths,
-            #               trg_seqs=trg_x,
-            #               teacher_forcing_prob=teacher_forcing_prob)
+            preds, attention_scores = model(char_src_seqs=src_char,
+                                            word_src_seqs=src_word,
+                                            src_seqs_lengths=src_lengths,
+                                            trg_seqs=trg_x,
+                                            trg_gender=trg_gender,
+                                            teacher_forcing_prob=teacher_forcing_prob
+                                            )
 
-            preds, attention_scores = model(src_char,
-                                            src_word,
-                                            src_lengths,
-                                            trg_x,
-                                            teacher_forcing_prob=teacher_forcing_prob)
             # CrossEntropyLoss accepts matrices always! 
             # the preds must be of size (N, C) where C is the number 
             # of classes and N is the number of samples. 
@@ -341,7 +337,7 @@ def evaluate(model, dataloader, criterion, device='cpu', teacher_forcing_prob=0)
 
 def inference(sampler, beam_sampler, dataloader, preds_dir):
     output_inf_file = open(preds_dir + '.inf', mode='w', encoding='utf8')
-    output_file = open(preds_dir, mode='w', encoding='utf8')
+    #output_file = open(preds_dir, mode='w', encoding='utf8')
     output_beam_g = open(preds_dir + '.beam_greedy', mode='w', encoding='utf8')
     output_beam = open(preds_dir + '.beam', mode='w', encoding='utf8')
 
@@ -356,9 +352,9 @@ def inference(sampler, beam_sampler, dataloader, preds_dir):
         src_gender = sampler.get_src_gender(0)
         trg_gender = sampler.get_trg_gender(0)
 
-        translated = sampler.translate_sentence(src)
-        beam_trans_10 = beam_sampler.beam_decode(src, topk=1, beam_width=10, max_len=512)
-        beam_trans_1 = beam_sampler.beam_decode(src, topk=1, beam_width=1, max_len=512)
+        translated = sampler.translate_sentence(src, trg_gender)
+        beam_trans_10 = beam_sampler.beam_decode(src, trg_gender, topk=1, beam_width=10, max_len=512)
+        beam_trans_1 = beam_sampler.beam_decode(src, trg_gender, topk=1, beam_width=1, max_len=512)
 
         correct = 'CORRECT!' if trg == translated else 'INCORRECT!'
         different_g = 'SAME!' if translated == beam_trans_1 else 'DIFF!'
@@ -373,8 +369,8 @@ def inference(sampler, beam_sampler, dataloader, preds_dir):
         else:
             beam_stats[(src_gender, trg_gender, 'incorrect')] = 1 + beam_stats.get((src_gender, trg_gender, 'incorrect'), 0)
 
-        output_file.write(pred)
-        output_file.write('\n')
+        #output_file.write(pred)
+        #output_file.write('\n')
         output_inf_file.write(translated)
         output_inf_file.write('\n')
         output_beam_g.write(beam_trans_1)
@@ -393,27 +389,43 @@ def inference(sampler, beam_sampler, dataloader, preds_dir):
         logger.info(f'res:\t\t\t{correct}')
         logger.info(f'beam==greedy?:\t\t{different_10}')
         logger.info('\n\n')
-    output_file.close()
+    #output_file.close()
+    output_inf_file.close()
+    output_beam_g.close()
+    output_beam.close()
 
     logger.info('*******STATS*******')
     assert sum([greedy_stats[x] for x in greedy_stats]) == sum([beam_stats[x] for x in beam_stats])
     total_examples = sum([greedy_stats[x] for x in greedy_stats])
     logger.info(f'TOTAL EXAMPLES: {total_examples}')
     logger.info('\n')
+
     correct_greedy = {(x[0], x[1]): greedy_stats[x] for x in greedy_stats if x[2] == 'correct'}
     incorrect_greedy = {(x[0], x[1]): greedy_stats[x] for x in greedy_stats if x[2] == 'incorrect'}
+    total_correct_greedy = sum([v for k,v in correct_greedy.items()])
+    total_incorrect_greedy = sum([v for k, v in incorrect_greedy.items()])
+
     logger.info('Results using greedy decoding:')
     for x in correct_greedy:
         logger.info(f'{x[0]}->{x[1]}')
         logger.info(f'\tCorrect: {correct_greedy.get(x, 0)}\tIncorrect: {incorrect_greedy.get(x, 0)}')
+    logger.info(f'--------------------------------')
+    logger.info(f'Total Correct: {total_correct_greedy}\tTotal Incorrect: {total_incorrect_greedy}')
 
     logger.info('\n')
+
     correct_beam = {(x[0], x[1]): beam_stats[x] for x in beam_stats if x[2] == 'correct'}
     incorrect_beam = {(x[0], x[1]): beam_stats[x] for x in beam_stats if x[2] == 'incorrect'}
+    total_correct_beam = sum([v for k, v in correct_beam.items()])
+    total_incorrect_beam = sum([v for k, v in incorrect_beam.items()])
+
     logger.info('Results using beam decoding:')
     for x in correct_beam:
         logger.info(f'{x[0]}->{x[1]}')
         logger.info(f'\tCorrect: {correct_beam.get(x, 0)}\tIncorrect: {incorrect_beam.get(x, 0)}')
+
+    logger.info(f'--------------------------------')
+    logger.info(f'Total Correct: {total_correct_beam}\tTotal Incorrect: {total_incorrect_beam}')
 
 def get_morph_features(args, data, word_vocab):
     morph_featurizer = MorphFeaturizer(args.analyzer_db_path)
@@ -463,6 +475,12 @@ def main():
         default=32,
         type=int,
         help="The embedding dimensions of the model"
+    )
+    parser.add_argument(
+        "--trg_gender_embedding_dim",
+        default=0,
+        type=int,
+        help="The embedding dimensions of the target gender"
     )
     parser.add_argument(
         "--hidd_dim",
@@ -532,6 +550,11 @@ def main():
         help="Whether to use morphological features or not."
     )
     parser.add_argument(
+        "--embed_trg_gender",
+        action="store_true",
+        help="Whether to embed the target gender or not."
+    )
+    parser.add_argument(
         "--analyzer_db_path",
         type=str,
         default=None,
@@ -589,6 +612,7 @@ def main():
     ENCODER_INPUT_DIM = len(vectorizer.src_vocab_char)
     DECODER_INPUT_DIM = len(vectorizer.trg_vocab_char)
     DECODER_OUTPUT_DIM = len(vectorizer.trg_vocab_char)
+    DECODER_TRG_GEN_INPUT_DIM = len(vectorizer.trg_gender_vocab)
     CHAR_SRC_PAD_INDEX = vectorizer.src_vocab_char.pad_idx
     WORD_SRC_PAD_INDEX = vectorizer.src_vocab_word.pad_idx
     TRG_PAD_INDEX = vectorizer.trg_vocab_char.pad_idx
@@ -610,10 +634,14 @@ def main():
                     decoder_embed_dim=args.embedding_dim,
                     decoder_output_dim=DECODER_OUTPUT_DIM,
                     morph_embeddings=morph_embeddings,
+                    embed_trg_gender=args.embed_trg_gender,
+                    gender_input_dim=DECODER_TRG_GEN_INPUT_DIM,
+                    gender_embed_dim=args.trg_gender_embedding_dim,
                     char_src_padding_idx=CHAR_SRC_PAD_INDEX,
                     word_src_padding_idx=WORD_SRC_PAD_INDEX,
                     trg_padding_idx=TRG_PAD_INDEX,
-                    trg_sos_idx=TRG_SOS_INDEX)
+                    trg_sos_idx=TRG_SOS_INDEX
+                    )
 
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
     criterion = nn.CrossEntropyLoss(ignore_index=TRG_PAD_INDEX)
