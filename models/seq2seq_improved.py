@@ -66,27 +66,35 @@ class Decoder(nn.Module):
            - The prediction layer input is the concatenation of
              the context vector and the h_t of the decoder
     """
-    def __init__(self, input_dim, embed_dim,
+    def __init__(self, input_dim, char_embed_dim,
                  hidd_dim, output_dim,
                  attention,
-                 padding_idx=0):
+                 padding_idx=0,
+                 embed_trg_gender=False,
+                 gender_input_dim=0,
+                 gender_embed_dim=0):
 
         super(Decoder, self).__init__()
         self.hidd_dim = hidd_dim
         self.attention = attention
-        self.embedding_layer = nn.Embedding(input_dim, embed_dim, padding_idx=padding_idx)
+        self.gender_embedding_layer = None
+
+        if embed_trg_gender:
+            self.gender_embedding_layer = nn.Embedding(gender_input_dim, gender_embed_dim)
+
+        self.char_embedding_layer = nn.Embedding(input_dim, char_embed_dim, padding_idx=padding_idx)
         # the input to the rnn is the context_vector + embedded token --> embed_dim + hidd_dim
-        self.rnn = nn.GRUCell((embed_dim + hidd_dim), hidd_dim)
-        # the input to the classifier is h_t + context_vector --> hidd_dim * 2
-        self.classification_layer = nn.Linear(hidd_dim * 2, output_dim)
+        self.rnn = nn.GRUCell((char_embed_dim + hidd_dim), hidd_dim)
+        # the input to the classifier is h_t + context_vector + gender_embed_dim? --> hidd_dim * 2
+        self.classification_layer = nn.Linear((hidd_dim * 2) + gender_embed_dim, output_dim)
 
 
-    def forward(self, trg_seqs, encoder_outputs, decoder_h_t, context_vectors, attention_mask):
+    def forward(self, trg_seqs, trg_gender, encoder_outputs, decoder_h_t, context_vectors, attention_mask):
         # trg_seqs shape: [batch_size]
         batch_size = trg_seqs.shape[0]
 
         # Step 1: embedding the target seqs
-        embedded_seqs = self.embedding_layer(trg_seqs)
+        embedded_seqs = self.char_embedding_layer(trg_seqs)
         # embedded_seqs shape: [batch_size, embed_dim]
 
         # concatenating the embedded trg sequence with the context_vectors
@@ -102,12 +110,24 @@ class Decoder(nn.Module):
                                                        query_vector=decoder_h_t,
                                                        mask=attention_mask)
 
-        # concatenating decoder_h_t with the context_vectors to create a 
-        # prediction vector
-        predictions_vector = torch.cat((decoder_h_t, context_vectors), dim=1)
-        # predictions_vector: [batch_size, hidd_dim * 2]
+        # Step 4: get the prediction vector
 
-        # Step 4: feeding the prediction vector to the fc layer
+        # embed trg gender info if needed
+        if self.gender_embedding_layer is not None:
+            embedded_trg_gender = self.gender_embedding_layer(trg_gender)
+            # embedded_trg_gender shape: [batch_size, gender_embed_dim]
+            # concatenating decoder_h_t, context_vectors, and the 
+            # embedded_trg_gender to create a prediction vector
+            predictions_vector = torch.cat((decoder_h_t, context_vectors, embedded_trg_gender), dim=1)
+            # predictions_vector: [batch_size, (hidd_dim * 2) + gender_embed_dim]
+
+        else:
+            # concatenating decoder_h_t with context_vectors to
+            # create a prediction vector
+            predictions_vector = torch.cat((decoder_h_t, context_vectors), dim=1)
+            # predictions_vector: [batch_size, (hidd_dim * 2)]
+
+        # Step 5: feeding the prediction vector to the fc layer
         # to a make a prediction
         prediction = self.classification_layer(predictions_vector)
         # prediction shape: [batch_size, output_dim]
@@ -176,8 +196,10 @@ class Seq2Seq(nn.Module):
     def __init__(self, encoder_input_dim, encoder_embed_dim,
                  encoder_hidd_dim, decoder_input_dim,
                  decoder_embed_dim, decoder_output_dim,
-                 morph_embeddings=None, char_src_padding_idx=0,
-                 word_src_padding_idx=0, trg_padding_idx=0, trg_sos_idx=2):
+                 morph_embeddings=None, embed_trg_gender=False,
+                 gender_input_dim=0, gender_embed_dim=0,
+                 char_src_padding_idx=0, word_src_padding_idx=0,
+                 trg_padding_idx=0, trg_sos_idx=2):
 
         super(Seq2Seq, self).__init__()
         self.encoder = Encoder(input_dim=encoder_input_dim,
@@ -193,11 +215,15 @@ class Seq2Seq(nn.Module):
                                            decoder_hidd_dim=self.decoder_hidd_dim)
 
         self.decoder = Decoder(input_dim=decoder_input_dim,
-                               embed_dim=decoder_embed_dim,
+                               char_embed_dim=decoder_embed_dim,
                                hidd_dim=self.decoder_hidd_dim,
                                output_dim=decoder_input_dim,
                                attention=self.attention,
-                               padding_idx=trg_padding_idx)
+                               padding_idx=trg_padding_idx,
+                               embed_trg_gender=embed_trg_gender,
+                               gender_input_dim=gender_input_dim,
+                               gender_embed_dim=gender_embed_dim
+                              )
 
         self.char_src_padding_idx = char_src_padding_idx
         self.trg_sos_idx = trg_sos_idx
@@ -207,7 +233,7 @@ class Seq2Seq(nn.Module):
         mask = (src_seqs != src_padding_idx)
         return mask
 
-    def forward(self, char_src_seqs, word_src_seqs, src_seqs_lengths, trg_seqs, teacher_forcing_prob=0.3):
+    def forward(self, char_src_seqs, word_src_seqs, src_seqs_lengths, trg_seqs, trg_gender, teacher_forcing_prob=0.3):
         # trg_seqs shape: [batch_size, trg_seqs_length]
         # reshaping to: [trg_seqs_length, batch_size]
         trg_seqs = trg_seqs.permute(1, 0)
@@ -243,11 +269,13 @@ class Seq2Seq(nn.Module):
                 y_t = trg_seqs[i]
 
             # do a single decoder step
-            prediction, decoder_h_t, atten_scores, context_vectors = self.decoder(y_t,
-                                                                                  encoder_outputs,
-                                                                                  decoder_h_t,
-                                                                                  context_vectors,
-                                                                                  attention_mask=attention_mask)
+            prediction, decoder_h_t, atten_scores, context_vectors = self.decoder(trg_seqs=y_t,
+                                                                                  trg_gender=trg_gender,
+                                                                                  encoder_outputs=encoder_outputs,
+                                                                                  decoder_h_t=decoder_h_t,
+                                                                                  context_vectors=context_vectors,
+                                                                                  attention_mask=attention_mask
+                                                                                  )
 
             # If not teacher force, use the maximum 
             # prediction as an input to the decoder in 
