@@ -41,7 +41,7 @@ class BeamSampler(NMT_Batch_Sampler):
 
         super(BeamSampler, self).__init__(model, src_vocab_char, src_vocab_word, trg_vocab, src_gender_vocab, trg_gender_vocab)
 
-    def beam_decode(self, sentence, topk=3, beam_width=5, max_len=512):
+    def beam_decode(self, sentence, trg_gender, topk=3, beam_width=5, max_len=512):
         """
         :param sentence: the source sentence
         :param topk: number of sentences to generate from beam search. Defaults to 3
@@ -65,10 +65,14 @@ class BeamSampler(NMT_Batch_Sampler):
         # getting sentence length
         src_sentence_length = [len(vectorized_src_sentence_char)]
 
+        # vectorizing the trg gender
+        vectorized_trg_gender = self.trg_gender_vocab.lookup_token(trg_gender)
+
         # converting the lists to tensors
         vectorized_src_sentence_char = torch.tensor([vectorized_src_sentence_char], dtype=torch.long)
         vectorized_src_sentence_word = torch.tensor([vectorized_src_sentence_word], dtype=torch.long)
         src_sentence_length = torch.tensor(src_sentence_length, dtype=torch.long)
+        vectorized_trg_gender = torch.tensor([vectorized_trg_gender], dtype=torch.long)
 
         # passing the src sentence to the encoder
         with torch.no_grad():
@@ -131,17 +135,17 @@ class BeamSampler(NMT_Batch_Sampler):
                 endnodes.append((score, n))
                 # if we reached maximum # of sentences required, stop beam search
                 if len(endnodes) >= number_required:
-#                     print('done')
                     break
                 else:
                     continue
 
             # decode for one step using decoder
-            decoder_output, decoder_hidden, atten_scores, context_vectors = self.model.decoder(decoder_input,
-                                                                                        encoder_outputs,
-                                                                                        decoder_hidden,
-                                                                                        context_vectors,
-                                                                                        attention_mask=attention_mask)
+            decoder_output, decoder_hidden, atten_scores, context_vectors = self.model.decoder(trg_seqs=decoder_input,
+                                                                                               trg_gender=vectorized_trg_gender,
+                                                                                               encoder_outputs=encoder_outputs,
+                                                                                               decoder_h_t=decoder_hidden,
+                                                                                               context_vectors=context_vectors,
+                                                                                               attention_mask=attention_mask)
 
             # obtaining log probs from the decoder predictions
             decoder_output = F.log_softmax(decoder_output, dim=1)
@@ -174,11 +178,13 @@ class BeamSampler(NMT_Batch_Sampler):
             endnodes = [nodes.get() for _ in range(topk)]
 
         # sorting the topk beams by their negative log probs
-#         endnodes = sorted(endnodes, key=lambda x: x[0])
+        endnodes = sorted(endnodes, key=lambda x: x[0])
 
-        # decoding 
+        # decoding
+        #TODO: Decoding currently works for one sentence at a time,
+        #Bashar needs to make it work on the batch
         decoded_sentences = []
-        for score, n in sorted(endnodes, key=operator.itemgetter(0)):
+        for score, n in endnodes:
             decoded_sentence = []
             decoded_sentence.append(n.wordid.item())
             # backtrack 
