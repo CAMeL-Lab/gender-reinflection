@@ -8,37 +8,55 @@ class Encoder(nn.Module):
     """Encoder bi-GRU"""
     def __init__(self, input_dim, char_embed_dim,
                  hidd_dim, morph_embeddings=None,
-                 char_padding_idx=0, word_padding_idx=0):
+                 fasttext_embeddings=None, char_padding_idx=0,
+                 word_padding_idx=0):
 
         super(Encoder, self).__init__()
         morph_embeddings_dim = 0
         self.morph_embedding_layer = None
+
+        fasttext_embeddings_dim = 0
+        self.fasttext_embedding_layer = None
+
         self.char_embedding_layer = nn.Embedding(input_dim, char_embed_dim, padding_idx=char_padding_idx)
 
         if morph_embeddings is not None:
             self.morph_embedding_layer = nn.Embedding.from_pretrained(morph_embeddings, padding_idx=word_padding_idx)
             morph_embeddings_dim = morph_embeddings.shape[1]
 
-        self.rnn = nn.GRU(char_embed_dim + morph_embeddings_dim, hidd_dim, batch_first=True, bidirectional=True)
+        if fasttext_embeddings is not None:
+            self.fasttext_embedding_layer = nn.Embedding.from_pretrained(fasttext_embeddings)
+            fasttext_embeddings_dim = fasttext_embeddings.shape[1]
+
+        self.rnn = nn.GRU(char_embed_dim + morph_embeddings_dim + fasttext_embeddings_dim,
+                          hidd_dim,
+                          batch_first=True,
+                          bidirectional=True
+                         )
 
     def forward(self, char_src_seqs, word_src_seqs, src_seqs_lengths):
 
-        embedded_char_seqs = self.char_embedding_layer(char_src_seqs)
-        # embedded_char_seqs shape: [batch_size, max_src_seq_len, char_embed_dim]
+        embedded_seqs = self.char_embedding_layer(char_src_seqs)
+        # embedded_seqs shape: [batch_size, max_src_seq_len, char_embed_dim]
 
+        # Add morph embeddings to the char embeddings if needed
         if self.morph_embedding_layer is not None:
-            embedded_word_seqs = self.morph_embedding_layer(word_src_seqs)
-            # embedded_char_seqs shape: [batch_size, max_src_seq_len, morph_embeddings_dim]
+            embedded_word_seqs_morph = self.morph_embedding_layer(word_src_seqs)
+            # embedded_word_seqs_morph shape: [batch_size, max_src_seq_len, morph_embeddings_dim]
 
-            merged_embeddings = torch.cat((embedded_char_seqs, embedded_word_seqs), dim=2)
-            # merged_embeddings shape: [batch_size, max_src_seq_len, char_embed_dim + morph_embeddings_dim]
+            embedded_seqs = torch.cat((embedded_seqs, embedded_word_seqs_morph), dim=2)
+            # embedded_seqs shape: [batch_size, max_src_seq_len, char_embed_dim + morph_embeddings_dim]
 
-            # packing the embedded_seqs
-            packed_embedded_seqs = pack_padded_sequence(merged_embeddings, src_seqs_lengths, batch_first=True)
+        # Add fasttext embeddings to the char embeddings if needed
+        if self.fasttext_embedding_layer is not None:
+            embedded_word_seqs_ft = self.fasttext_embedding_layer(word_src_seqs)
+            # embedded_word_seqs_ft shape: [batch_size, max_src_seq_len, fasttext_embeddings_dim]
 
-        else:
-            # packing the embedded_seqs
-            packed_embedded_seqs = pack_padded_sequence(embedded_char_seqs, src_seqs_lengths, batch_first=True)
+            embedded_seqs = torch.cat((embedded_seqs, embedded_word_seqs_ft), dim=2)
+            # embedded_seqs shape: [batch_size, max_src_seq_len, char_embed_dim + fasttext_embeddings_dim]
+
+        # packing the embedded_seqs
+        packed_embedded_seqs = pack_padded_sequence(embedded_seqs, src_seqs_lengths, batch_first=True)
 
         output, hidd = self.rnn(packed_embedded_seqs)
         # hidd shape: [num_layers * num_dirs, batch_size, hidd_dim]
@@ -196,16 +214,17 @@ class Seq2Seq(nn.Module):
     def __init__(self, encoder_input_dim, encoder_embed_dim,
                  encoder_hidd_dim, decoder_input_dim,
                  decoder_embed_dim, decoder_output_dim,
-                 morph_embeddings=None, embed_trg_gender=False,
-                 gender_input_dim=0, gender_embed_dim=0,
-                 char_src_padding_idx=0, word_src_padding_idx=0,
-                 trg_padding_idx=0, trg_sos_idx=2):
+                 morph_embeddings=None, fasttext_embeddings=None,
+                 embed_trg_gender=False, gender_input_dim=0,
+                 gender_embed_dim=0, char_src_padding_idx=0,
+                 word_src_padding_idx=0, trg_padding_idx=0, trg_sos_idx=2):
 
         super(Seq2Seq, self).__init__()
         self.encoder = Encoder(input_dim=encoder_input_dim,
                                char_embed_dim=encoder_embed_dim,
                                hidd_dim=encoder_hidd_dim,
                                morph_embeddings=morph_embeddings,
+                               fasttext_embeddings=fasttext_embeddings,
                                char_padding_idx=char_src_padding_idx,
                                word_padding_idx=word_src_padding_idx)
 

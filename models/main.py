@@ -9,6 +9,7 @@ import random
 import re
 import numpy as np
 import argparse
+from gensim.models import KeyedVectors
 from seq2seq_improved import Seq2Seq
 # from nmt_sampler import NMT_Batch_Sampler
 from nmt_sampler_improv import NMT_Batch_Sampler
@@ -439,6 +440,23 @@ def get_morph_features(args, data, word_vocab):
     morph_embeddings = morph_featurizer.create_morph_embeddings(word_vocab)
     return morph_embeddings
 
+def load_fasttext_embeddings(args, vocab):
+    fasttext_wv = KeyedVectors.load(args.fasttext_embeddings_kv_path, mmap='r')
+    pretrained_embeddings = torch.zeros((len(vocab), fasttext_wv.vector_size), dtype=torch.float32)
+    oov = 0
+    unks = list()
+    for word, index in vocab.token_to_idx.items():
+        if word in fasttext_wv:
+            pretrained_embeddings[index] = torch.tensor(fasttext_wv[word], dtype=torch.float32)
+        else:
+            oov += 1
+            unks.append(word)
+
+    # pretrained_embeddings = torch.tensor(pretrained_embeddings, dtype=torch.float32)
+    #     print(f'# Vocab not in the Embeddings: {oov}')
+    #     print(unks)
+    return pretrained_embeddings
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -550,6 +568,17 @@ def main():
         help="Whether to use morphological features or not."
     )
     parser.add_argument(
+        "--use_fasttext_embeddings",
+        action="store_true",
+        help="Whether to use fasttext embeddings or not."
+    )
+    parser.add_argument(
+        "--fasttext_embeddings_kv_path",
+        type=str,
+        default=None,
+        help="The path to the pretrained fasttext embeddings keyedvectors."
+    )
+    parser.add_argument(
         "--embed_trg_gender",
         action="store_true",
         help="Whether to embed the target gender or not."
@@ -605,9 +634,13 @@ def main():
         # training data
         train_src_data = [t.src for t in dataset.train_examples]
         morph_embeddings = get_morph_features(args, train_src_data, vectorizer.src_vocab_word)
-
     else:
         morph_embeddings = None
+
+    if args.use_fasttext_embeddings:
+        fasttext_embeddings = load_fasttext_embeddings(args, vectorizer.src_vocab_word)
+    else:
+        fasttext_embeddings = None
 
     ENCODER_INPUT_DIM = len(vectorizer.src_vocab_char)
     DECODER_INPUT_DIM = len(vectorizer.trg_vocab_char)
@@ -634,6 +667,7 @@ def main():
                     decoder_embed_dim=args.embedding_dim,
                     decoder_output_dim=DECODER_OUTPUT_DIM,
                     morph_embeddings=morph_embeddings,
+                    fasttext_embeddings=fasttext_embeddings,
                     embed_trg_gender=args.embed_trg_gender,
                     gender_input_dim=DECODER_TRG_GEN_INPUT_DIM,
                     gender_embed_dim=args.trg_gender_embedding_dim,
