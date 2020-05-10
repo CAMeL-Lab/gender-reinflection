@@ -10,7 +10,7 @@ import re
 import numpy as np
 import argparse
 from gensim.models import KeyedVectors
-from seq2seq_improved import Seq2Seq
+from seq2seq_improved_test import Seq2Seq
 # from nmt_sampler import NMT_Batch_Sampler
 from nmt_sampler_improv import NMT_Batch_Sampler
 from beam_decoder import BeamSampler
@@ -507,6 +507,12 @@ def main():
         help="The hidden dimensions of the model"
     )
     parser.add_argument(
+        "--dropout",
+        default=0.0,
+        type=float,
+        help="Dropout rate."
+    )
+    parser.add_argument(
         "--learning_rate",
         default=5e-4,
         type=float,
@@ -674,7 +680,8 @@ def main():
                     char_src_padding_idx=CHAR_SRC_PAD_INDEX,
                     word_src_padding_idx=WORD_SRC_PAD_INDEX,
                     trg_padding_idx=TRG_PAD_INDEX,
-                    trg_sos_idx=TRG_SOS_INDEX
+                    trg_sos_idx=TRG_SOS_INDEX,
+                    dropout=args.dropout
                     )
 
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
@@ -739,6 +746,7 @@ def main():
         logger.info('Inference')
         set_seed(args.seed, args.use_cuda)
         model.load_state_dict(torch.load(args.model_path))
+        model.eval()
         device = torch.device('cpu')
         model = model.to(device)
         dataset.set_split(args.inference_mode)
