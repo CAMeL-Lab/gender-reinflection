@@ -20,4 +20,13 @@
 
 * NOTE: This is an evaluation metric paper.
 * The authors present a new mteric ERRANT (ERRor ANnotation Toolkit).
-* They claim that the m2scorer evaluation do some sort of over estimating while computing the F0.5 score. 
+* They claim that the m2scorer evaluation do some sort of over estimating while computing the F0.5 score.
+
+[Language Model Based Grammatical Error Correction without Annotated Training Data, ACL 2018](https://www.aclweb.org/anthology/W18-0529.pdf):
+
+* The authors use a LM for GEC
+* Their approach is interesting as it requires minimal annotated data
+
+[The Unreasonable Effectiveness of Transformer Language Models in Grammatical Error Correction](https://arxiv.org/pdf/1906.01733.pdf):
+
+* Inspired by the previous paper, the authors use a transformer LM for GEC
