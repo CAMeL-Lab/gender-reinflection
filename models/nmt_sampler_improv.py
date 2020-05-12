@@ -109,10 +109,12 @@ class NMT_Batch_Sampler:
         attention_mask = self.model.create_mask(vectorized_src_sentence_char, self.src_vocab_char.pad_idx)
 
         # initilizating the first decoder_h_t to encoder_h_t
-        decoder_h_t = encoder_h_t
+        # decoder_h_t = encoder_h_t
+        decoder_h_t = torch.tanh(self.model.linear_map(encoder_h_t))
 
         # initializing the context vectors to 0
-        context_vectors = torch.zeros(1, self.model.decoder.hidd_dim)
+        # context_vectors = torch.zeros(1, self.model.decoder.hidd_dim)
+        context_vectors = torch.zeros(1, self.model.decoder.hidd_dim * 2)
 
         # intializing the trg sequences to the <s> token
         trg_seqs = [self.trg_vocab.sos_idx]
