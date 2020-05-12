@@ -21,11 +21,13 @@ class BeamSearchNode:
         self.logp = log_prob
         self.leng = length
 
-    def eval(self, alpha=1.0):
+    def eval(self, alpha=1):
         reward = 0
         # Add here a function for shaping a reward
         # the log prob will be normalized by the length of the sentence
-        return self.logp / float(self.leng - 1 + 1e-6) + alpha * reward
+        # as defined by Wu et. al: https://arxiv.org/pdf/1609.08144.pdf
+        #return self.logp / float(self.leng - 1 + 1e-6) + alpha * reward
+        return self.logp / float(self.leng - 1 + 1e-6)**alpha
 
     def __lt__(self, other):
        """Overriding the less than function to handle
@@ -84,10 +86,12 @@ class BeamSampler(NMT_Batch_Sampler):
         attention_mask = self.model.create_mask(vectorized_src_sentence_char, self.src_vocab_char.pad_idx)
 
         # initilizating the first decoder_h_t to encoder_h_t
-        decoder_hidden = encoder_h_t
+        #decoder_hidden = encoder_h_t
+        decoder_hidden = torch.tanh(self.model.linear_map(encoder_h_t))
 
         # initializing the context vectors to 0
-        context_vectors = torch.zeros(1, self.model.decoder.hidd_dim)
+        # context_vectors = torch.zeros(1, self.model.decoder.hidd_dim)
+        context_vectors = torch.zeros(1, self.model.decoder.hidd_dim * 2)
 
         # if beam_width == 1, then we're doing greedy decoding
         beam_width = beam_width
@@ -140,12 +144,13 @@ class BeamSampler(NMT_Batch_Sampler):
                     continue
 
             # decode for one step using decoder
-            decoder_output, decoder_hidden, atten_scores, context_vectors = self.model.decoder(trg_seqs=decoder_input,
-                                                                                               trg_gender=vectorized_trg_gender,
-                                                                                               encoder_outputs=encoder_outputs,
-                                                                                               decoder_h_t=decoder_hidden,
-                                                                                               context_vectors=context_vectors,
-                                                                                               attention_mask=attention_mask)
+            with torch.no_grad():
+                decoder_output, decoder_hidden, atten_scores, context_vectors = self.model.decoder(trg_seqs=decoder_input,
+                                                                                                   trg_gender=vectorized_trg_gender,
+                                                                                                   encoder_outputs=encoder_outputs,
+                                                                                                   decoder_h_t=decoder_hidden,
+                                                                                                   context_vectors=context_vectors,
+                                                                                                   attention_mask=attention_mask)
 
             # obtaining log probs from the decoder predictions
             decoder_output = F.log_softmax(decoder_output, dim=1)
