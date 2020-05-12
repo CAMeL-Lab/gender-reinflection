@@ -25,10 +25,15 @@ class Vectorizer:
     def __init__(self, src_vocab_char, trg_vocab_char,
                  src_vocab_word, trg_vocab_word,
                  src_gender_vocab, trg_gender_vocab):
-        """src_vocab_char and trg_vocab_char are on the char
-        level. src_vocab_word and trg_vocab_word are on the
-        word level. src_gender_vocab and trg_gender_vocab
-        are on the sentence level"""
+        """
+        Args:
+            - src_vocab_char (SeqVocabulary): source vocab on the char level
+            - trg_vocab_char (SeqVocabulary): target vocab on the char level
+            - src_vocab_word (SeqVocabulary): source vocab on the word level
+            - trg_vocab_word (SeqVocabulary): target vocab on the target level
+            - src_gender_vocab (Vocabulary): source gender vocab on the sentence level
+            - trg_gender_vocab (Vocabulary): target gender vocab on the sentence level
+        """
 
         self.src_vocab_char = src_vocab_char
         self.trg_vocab_char = trg_vocab_char
@@ -77,7 +82,7 @@ class Vectorizer:
     def get_src_indices(self, seq):
         """
         Args:
-          - seq (str): The src sequence
+          - seq (str): The source sequence
 
         Returns:
           - char_level_indices (list): <s> + List of chars to index mapping + </s>
@@ -103,7 +108,7 @@ class Vectorizer:
     def get_trg_indices(self, seq):
         """
         Args:
-          - seq (str): The trg sequence
+          - seq (str): The target sequence
 
         Returns:
           - trg_x_indices (list): <s> + List of chars to index mapping
@@ -118,13 +123,16 @@ class Vectorizer:
     def vectorize(self, src, trg, src_g, trg_g):
         """
         Args:
-          - src (str): The src sequence
-          - src (str): The trg sequence
+          - src (str): The source sequence
+          - src (str): The target sequence
+
         Returns:
-          - vectorized_src_char
-          - vectorized_src_word
-          - vectorized_trg_x
-          - vectorized_trg_y
+          - vectorized_src_char (tensor): <s> + vectorized source seq on the char level + </s>
+          - vectorized_src_word (tensor): <s> + vectorized source seq on the word level + </s>
+          - vectorized_trg_x (tensor): <s> + vectorized target seq on the char level
+          - vectorized_trg_y (tensor): vectorized target seq on the char level + </s>
+          - src_g (tensor): vectorized source gender
+          - trg_g (tensor): vectorized target gender
         """
         src = src
         trg = trg
@@ -169,6 +177,11 @@ class Vectorizer:
 class MT_Dataset(Dataset):
     """MT Dataset as a PyTorch dataset"""
     def __init__(self, raw_dataset, vectorizer):
+        """
+        Args:
+            - raw_dataset (RawDataset): raw dataset object
+            - vectorizer (Vectorizer): vectorizer object
+        """
         self.vectorizer = vectorizer
         self.train_examples = raw_dataset.train_examples
         self.dev_examples = raw_dataset.dev_examples
@@ -221,6 +234,12 @@ class MT_Dataset(Dataset):
 class Collator:
     def __init__(self, char_src_pad_idx, char_trg_pad_idx,
                 word_src_pad_idx):
+        """
+        Args:
+            - char_src_pad_idx: source vocab padding index on the char level
+            - char_trg_pad_idx: target vocab padding index on the char level
+            - word_src_pad_idx: source vocab padding index on the word level
+        """
         self.char_src_pad_idx = char_src_pad_idx
         self.word_src_pad_idx = word_src_pad_idx
         self.char_trg_pad_idx = char_trg_pad_idx
