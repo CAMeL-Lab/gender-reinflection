@@ -90,11 +90,13 @@ class Decoder(nn.Module):
                  padding_idx=0,
                  embed_trg_gender=False,
                  gender_input_dim=0,
-                 gender_embed_dim=0):
+                 gender_embed_dim=0,
+                 dropout=0):
 
         super(Decoder, self).__init__()
         self.hidd_dim = hidd_dim
         self.attention = attention
+        self.dropout = dropout
         self.gender_embedding_layer = None
 
         if embed_trg_gender:
@@ -147,6 +149,9 @@ class Decoder(nn.Module):
 
         # Step 5: feeding the prediction vector to the fc layer
         # to a make a prediction
+
+        # apply dropout if needed
+        predictions_vector = F.dropout(predictions_vector, self.dropout)
         prediction = self.classification_layer(predictions_vector)
         # prediction shape: [batch_size, output_dim]
 
@@ -217,7 +222,8 @@ class Seq2Seq(nn.Module):
                  morph_embeddings=None, fasttext_embeddings=None,
                  embed_trg_gender=False, gender_input_dim=0,
                  gender_embed_dim=0, char_src_padding_idx=0,
-                 word_src_padding_idx=0, trg_padding_idx=0, trg_sos_idx=2):
+                 word_src_padding_idx=0, trg_padding_idx=0,
+                 dropout=0, trg_sos_idx=2):
 
         super(Seq2Seq, self).__init__()
         self.encoder = Encoder(input_dim=encoder_input_dim,
@@ -226,7 +232,8 @@ class Seq2Seq(nn.Module):
                                morph_embeddings=morph_embeddings,
                                fasttext_embeddings=fasttext_embeddings,
                                char_padding_idx=char_src_padding_idx,
-                               word_padding_idx=word_src_padding_idx)
+                               word_padding_idx=word_src_padding_idx
+                               )
 
         self.decoder_hidd_dim = encoder_hidd_dim * 2
 
@@ -241,7 +248,8 @@ class Seq2Seq(nn.Module):
                                padding_idx=trg_padding_idx,
                                embed_trg_gender=embed_trg_gender,
                                gender_input_dim=gender_input_dim,
-                               gender_embed_dim=gender_embed_dim
+                               gender_embed_dim=gender_embed_dim,
+                               dropout=dropout
                               )
 
         self.char_src_padding_idx = char_src_padding_idx
