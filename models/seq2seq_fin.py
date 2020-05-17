@@ -37,7 +37,7 @@ class Encoder(nn.Module):
                           num_layers=num_layers,
                           batch_first=True,
                           bidirectional=True,
-                          dropout=dropout
+                          dropout=dropout if num_layers > 1 else 0.0
                          )
 
     def forward(self, char_src_seqs, word_src_seqs, src_seqs_lengths):
@@ -101,7 +101,6 @@ class Decoder(nn.Module):
         super(Decoder, self).__init__()
         self.hidd_dim = hidd_dim
         self.attention = attention
-        self.dropout = dropout
         self.gender_embedding_layer = None
 
         if embed_trg_gender:
@@ -112,14 +111,16 @@ class Decoder(nn.Module):
         self.rnn = nn.GRU(input_size=char_embed_dim + encoder_hidd_dim * 2,
                           hidden_size=hidd_dim,
                           num_layers=num_layers,
-                          batch_first=True
+                          batch_first=True,
+                          dropout=dropout if num_layers > 1 else 0.0
                           )
 
         # the input to the classifier is h_t + context_vector + gender_embed_dim? --> hidd_dim * 2
-        self.classification_layer = nn.Linear(encoder_hidd_dim * 2 + hidd_dim + gender_embed_dim,
+        self.classification_layer = nn.Linear(encoder_hidd_dim * 2 + hidd_dim * num_layers + gender_embed_dim,
                                              output_dim
                                              )
 
+        self.dropout_layer = nn.Dropout(dropout)
 
     def forward(self, trg_seqs, trg_gender, encoder_outputs, decoder_h_t, context_vectors, attention_mask):
         # trg_seqs shape: [batch_size]
@@ -135,8 +136,7 @@ class Decoder(nn.Module):
         # context_vectors shape: [batch_size, encoder_hidd_dim * 2]
         # changing shape to: [batch_size, 1, encoder_hidd_dim * 2]
         context_vectors = context_vectors.unsqueeze(1)
-        print('context_vectors shape: ', context_vectors.shape, flush=True)
-        print('embedded seqs shape: ', embedded_seqs.shape, flush=True)
+
         # concatenating the embedded trg sequence with the context_vectors
         rnn_input = torch.cat((embedded_seqs, context_vectors), dim=2)
         # rnn_input shape: [batch_size, embed_dim + encoder_hidd_dim * 2]
@@ -161,20 +161,20 @@ class Decoder(nn.Module):
             # embedded_trg_gender shape: [batch_size, gender_embed_dim]
             # concatenating decoder_h_t, context_vectors, and the 
             # embedded_trg_gender to create a prediction vector
-            predictions_vector = torch.cat((decoder_h_t[-1, :, :], context_vectors, embedded_trg_gender), dim=1)
+            predictions_vector = torch.cat((decoder_h_t.view(decoder_h_t.shape[1], -1), context_vectors, embedded_trg_gender), dim=1)
             # predictions_vector: [batch_size, hidd_dim + encoder_hidd_dim * 2 + gender_embed_dim]
 
         else:
             # concatenating decoder_h_t with context_vectors to
             # create a prediction vector
-            predictions_vector = torch.cat((decoder_h_t[-1, :, :], context_vectors), dim=1)
+            predictions_vector = torch.cat((decoder_h_t.view(decoder_h_t.shape[1], -1), context_vectors), dim=1)
             # predictions_vector: [batch_size, hidd_dim + encoder_hidd_dim * 2]
 
         # Step 5: feeding the prediction vector to the fc layer
         # to a make a prediction
 
         # apply dropout if needed
-        predictions_vector = F.dropout(predictions_vector, self.dropout)
+        predictions_vector = self.dropout_layer(predictions_vector)
         prediction = self.classification_layer(predictions_vector)
         # prediction shape: [batch_size, output_dim]
 
@@ -184,6 +184,7 @@ class AdditiveAttention(nn.Module):
     """Attention mechanism as a MLP
     as used by Bahdanau et. al 2015"""
 
+    # def __init__(self, encoder_hidd_dim, decoder_hidd_dim, num_layers):
     def __init__(self, encoder_hidd_dim, decoder_hidd_dim):
         super(AdditiveAttention, self).__init__()
         self.atten = nn.Linear((encoder_hidd_dim * 2) + decoder_hidd_dim, decoder_hidd_dim)
@@ -202,6 +203,9 @@ class AdditiveAttention(nn.Module):
 
         # applying attention to the last hidden state of the decoder
         query_vector = query_vector[-1, :, :]
+
+        # query_vector = query_vector.view(query_vector.shape[1], -1)
+        # query_vector shape: [batch_size, num_layers * num_dirs * decoder_hidd_dim]
 
         #changing the shape of query_vector to [batch_size, src_seq_length, decoder_hidd_dim]
         #we will repeat the query_vector src_seq_length times at dim 1
@@ -266,7 +270,9 @@ class Seq2Seq(nn.Module):
                                )
 
         self.attention = AdditiveAttention(encoder_hidd_dim=encoder_hidd_dim,
-                                           decoder_hidd_dim=decoder_hidd_dim)
+                                           decoder_hidd_dim=decoder_hidd_dim
+                                           # num_layers=decoder_num_layers
+                                           )
 
         self.linear_map = nn.Linear(encoder_hidd_dim * 2, decoder_hidd_dim)
 
