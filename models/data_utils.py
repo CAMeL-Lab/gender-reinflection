@@ -63,17 +63,17 @@ class RawDataset:
 
     def get_train_examples(self, data_dir):
         """Reads the train examples of the dataset"""
-        return self.create_examples(os.path.join(data_dir, 'D-set-train.ar.M'),
+        return self.create_examples(os.path.join(data_dir, 'D-set-train.arin'),
                                     os.path.join(data_dir, 'D-set-train.ar.F'))
 
     def get_dev_examples(self, data_dir):
         """Reads the dev examples of the dataset"""
-        return self.create_examples(os.path.join(data_dir, 'D-set-dev.ar.M'),
+        return self.create_examples(os.path.join(data_dir, 'D-set-dev.arin'),
                                     os.path.join(data_dir, 'D-set-dev.ar.F'))
 
     def get_test_examples(self, data_dir):
         """Reads the test examples of the dataset"""
-        return self.create_examples(os.path.join(data_dir, 'D-set-test.ar.M'),
+        return self.create_examples(os.path.join(data_dir, 'D-set-test.arin'),
                                     os.path.join(data_dir, 'D-set-test.ar.F'))
 
 class Vocabulary:
@@ -250,12 +250,30 @@ class MorphFeaturizer:
         morph_features = self.w_to_features
 
         # Note: morph_features will have all the words in word_vocab
-        # except: <s>, pad, unk, </s>, ' '
+        # except: <s>, <pad>, <unk>, </s>, ' '
 
-        # Creating a -1 embedding matrix of shape: (len(word_vocab), 4)
-        morph_embedding_matrix = torch.ones((len(word_vocab), 4)) * 1e-6
+        # Creating a 0 embedding matrix of shape: (len(word_vocab), 4)
+        morph_embedding_matrix = torch.zeros((len(word_vocab), 4))
         for word in word_vocab.token_to_idx:
             if word in morph_features:
                 index = word_vocab.lookup_token(word)
                 morph_embedding_matrix[index] = torch.tensor(morph_features[word], dtype=torch.float64)
+
+        #morph_embedding_matrix[word_vocab.pad_idx] = torch.zeros(4)
+        #morph_embedding_matrix[word_vocab.sos_idx] = torch.randn(4)
+        #morph_embedding_matrix[word_vocab.eos_idx] = torch.randn(4)
+        #morph_embedding_matrix[word_vocab.unk_idx] = torch.randn(4)
+
         return morph_embedding_matrix
+
+def accuracy(trg, pred):
+    trg_words = trg.split(' ')
+    pred_words = pred.split(' ')
+    acc = 0
+    for i, w in enumerate(trg_words):
+        if i < len(pred_words):
+            if w == pred_words[i]:
+                acc += 1
+        else:
+            break
+    return float(acc) / float(len(trg_words))
