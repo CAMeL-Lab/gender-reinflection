@@ -1,6 +1,13 @@
 import argparse
 
 def accuracy(trg, pred):
+     """
+     Args:
+        - trg (str): reference
+        - pred (str): generated output
+     Returns:
+        - acc (float): word level accuracy
+     """
      trg_words = trg.split(' ')
      pred_words = pred.split(' ')
      acc = 0
@@ -13,6 +20,13 @@ def accuracy(trg, pred):
      return float(acc) / float(len(trg_words))
 
 def corpus_accuracy(trg_corpus, pred_corpus):
+    """
+    Args:
+        - trg_corpus (list): list of references
+        - pred_corpus (list): list of model's predictions
+    Returns:
+        - corpus_acc (float): average accuracy accross the corpus
+    """
     corpus_acc = 0
     for i, line in enumerate(trg_corpus):
         corpus_acc += accuracy(trg=trg_corpus[i], pred=pred_corpus[i])
