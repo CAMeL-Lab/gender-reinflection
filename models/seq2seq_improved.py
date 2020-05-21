@@ -56,19 +56,23 @@ class Encoder(nn.Module):
             # embedded_seqs shape: [batch_size, max_src_seq_len, char_embed_dim + fasttext_embeddings_dim]
 
         # packing the embedded_seqs
-        packed_embedded_seqs = pack_padded_sequence(embedded_seqs, src_seqs_lengths, batch_first=True)
+        # packed_embedded_seqs = pack_padded_sequence(embedded_seqs, src_seqs_lengths, batch_first=True)
 
-        output, hidd = self.rnn(packed_embedded_seqs)
+        output, hidd = self.rnn(embedded_seqs)
         # hidd shape: [num_layers * num_dirs, batch_size, hidd_dim]
 
         # changing hidd shape to: [batch_size, num_layers * num_dirs, hidd_dim]
-        hidd = hidd.permute(1, 0 ,2)
+        #hidd = hidd.permute(1, 0 ,2)
 
         # changing hidd shape to: [batch_size, num_layers * num_dirs * hidd_dim]
-        hidd = hidd.contiguous().view(hidd.shape[0], -1)
+        #hidd = hidd.contiguous().view(hidd.shape[0], -1)
+
+        # getting the last forward and backward hidd vectors
+        hidd = torch.cat((hidd[-2, :, :], hidd[-1, :, :]), dim=1)
+        # hidd.shape: [batch_size, num_dirs * hidd_dim]
 
         # unpacking the output
-        output, lengths = pad_packed_sequence(output, batch_first=True)
+        # output, lengths = pad_packed_sequence(output, batch_first=True)
         # output shape: [batch_size, src_seqs_length, num_dirs * hidd_dim]
         return output, hidd
 

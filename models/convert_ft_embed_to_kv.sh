@@ -16,7 +16,7 @@
 
 module purge
 
-export FASTTEXT_BIN_PATH=/scratch/ba63/gender_bias/data/OpenSubtitles_fasttext_embeddings.bin
-export KV_OUTPUT_PATH=/scratch/ba63/gender_bias/data/OpenSubtitles_fasttext_embeddings.kv
+export FASTTEXT_BIN_PATH=/scratch/ba63/gender_bias/data/gigword_fasttext_embeddings.bin
+export KV_OUTPUT_PATH=/scratch/ba63/gender_bias/data/gigword_fasttext_embeddings.kv
 
 python postprocess_ft_embeddings.py --fasttext_embedding_dir $FASTTEXT_BIN_PATH --kv_output_dir $KV_OUTPUT_PATH

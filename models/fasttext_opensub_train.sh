@@ -16,7 +16,7 @@
 
 module load gcc
 
-export INPUT=/scratch/ba63/gender_bias/data/OpenSubtitles.ar-en.ar.sep.punc
-export OUTPUT=/scratch/ba63/gender_bias/data/OpenSubtitles_fasttext_embeddings
+export INPUT=/scratch/ba63/gender_bias/data/OpenSubtitles.ar-en.ar
+export OUTPUT=/scratch/ba63/gender_bias/data/OpenSubtitles_fasttext_embeddings_raw
 
 /home/ba63/fastText-0.9.1/fasttext skipgram -input $INPUT -minn 2 -maxn 5 -dim 300 -epoch 5 -output $OUTPUT

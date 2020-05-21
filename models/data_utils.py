@@ -63,17 +63,17 @@ class RawDataset:
 
     def get_train_examples(self, data_dir):
         """Reads the train examples of the dataset"""
-        return self.create_examples(os.path.join(data_dir, 'D-set-train.arin'),
+        return self.create_examples(os.path.join(data_dir, 'D-set-train.ar.M'),
                                     os.path.join(data_dir, 'D-set-train.ar.F'))
 
     def get_dev_examples(self, data_dir):
         """Reads the dev examples of the dataset"""
-        return self.create_examples(os.path.join(data_dir, 'D-set-dev.arin'),
+        return self.create_examples(os.path.join(data_dir, 'D-set-dev.ar.M'),
                                     os.path.join(data_dir, 'D-set-dev.ar.F'))
 
     def get_test_examples(self, data_dir):
         """Reads the test examples of the dataset"""
-        return self.create_examples(os.path.join(data_dir, 'D-set-test.arin'),
+        return self.create_examples(os.path.join(data_dir, 'D-set-test.ar.M'),
                                     os.path.join(data_dir, 'D-set-test.ar.F'))
 
 class Vocabulary:
@@ -253,7 +253,7 @@ class MorphFeaturizer:
         # except: <s>, <pad>, <unk>, </s>, ' '
 
         # Creating a 0 embedding matrix of shape: (len(word_vocab), 4)
-        morph_embedding_matrix = torch.zeros((len(word_vocab), 4))
+        morph_embedding_matrix = torch.ones((len(word_vocab), 4)) * 1e-6
         for word in word_vocab.token_to_idx:
             if word in morph_features:
                 index = word_vocab.lookup_token(word)

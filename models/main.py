@@ -3,14 +3,14 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 import torch.optim as optim
 from torch.nn.utils.rnn import pad_sequence
-from data_utils import Vocabulary, SeqVocabulary, GenderVocabulary, RawDataset, MorphFeaturizer
+from data_utils import Vocabulary, SeqVocabulary, GenderVocabulary, RawDataset, MorphFeaturizer, accuracy
 import json
 import random
 import re
 import numpy as np
 import argparse
 from gensim.models import KeyedVectors
-from seq2seq_improved_test import Seq2Seq
+from seq2seq_improved import Seq2Seq
 # from nmt_sampler import NMT_Batch_Sampler
 from nmt_sampler_improv import NMT_Batch_Sampler
 from beam_decoder import BeamSampler
@@ -363,6 +363,8 @@ def inference(sampler, beam_sampler, dataloader, preds_dir):
 
     greedy_stats = {}
     beam_stats = {}
+    greedy_accuracy = 0
+    beam_accuracy = 0
 
     for batch in dataloader:
         sampler.update_batch(batch)
@@ -375,6 +377,9 @@ def inference(sampler, beam_sampler, dataloader, preds_dir):
         translated = sampler.translate_sentence(src, trg_gender)
         beam_trans_10 = beam_sampler.beam_decode(src, trg_gender, topk=1, beam_width=10, max_len=512)
         beam_trans_1 = beam_sampler.beam_decode(src, trg_gender, topk=1, beam_width=1, max_len=512)
+
+        greedy_accuracy += accuracy(trg=trg, pred=translated)
+        beam_accuracy += accuracy(trg=trg, pred=beam_trans_10)
 
         correct = 'CORRECT!' if trg == translated else 'INCORRECT!'
         different_g = 'SAME!' if translated == beam_trans_1 else 'DIFF!'
@@ -409,7 +414,10 @@ def inference(sampler, beam_sampler, dataloader, preds_dir):
         logger.info(f'res:\t\t\t{correct}')
         logger.info(f'beam==greedy?:\t\t{different_10}')
         logger.info('\n\n')
-    #output_file.close()
+
+    greedy_accuracy /= len(dataloader)
+    beam_accuracy /= len(dataloader)
+
     output_inf_file.close()
     output_beam_g.close()
     output_beam.close()
@@ -432,6 +440,8 @@ def inference(sampler, beam_sampler, dataloader, preds_dir):
     logger.info(f'--------------------------------')
     logger.info(f'Total Correct: {total_correct_greedy}\tTotal Incorrect: {total_incorrect_greedy}')
 
+    logger.info(f'Accuracy:\t{greedy_accuracy}')
+
     logger.info('\n')
 
     correct_beam = {(x[0], x[1]): beam_stats[x] for x in beam_stats if x[2] == 'correct'}
@@ -446,6 +456,7 @@ def inference(sampler, beam_sampler, dataloader, preds_dir):
 
     logger.info(f'--------------------------------')
     logger.info(f'Total Correct: {total_correct_beam}\tTotal Incorrect: {total_incorrect_beam}')
+    logger.info(f'Accuracy:\t{beam_accuracy}')
 
 def get_morph_features(args, data, word_vocab):
     morph_featurizer = MorphFeaturizer(args.analyzer_db_path)
@@ -461,7 +472,7 @@ def get_morph_features(args, data, word_vocab):
 
 def load_fasttext_embeddings(args, vocab):
     fasttext_wv = KeyedVectors.load(args.fasttext_embeddings_kv_path, mmap='r')
-    pretrained_embeddings = torch.zeros((len(vocab), fasttext_wv.vector_size), dtype=torch.float32)
+    pretrained_embeddings = torch.randn((len(vocab), fasttext_wv.vector_size), dtype=torch.float32)
     oov = 0
     unks = list()
     for word, index in vocab.token_to_idx.items():
@@ -471,9 +482,15 @@ def load_fasttext_embeddings(args, vocab):
             oov += 1
             unks.append(word)
 
+    # remapping the embeddings of <s>, <pad>, ' ', and <unk> to random embeddings
+    pretrained_embeddings[vocab.sos_idx] = torch.randn(fasttext_wv.vector_size, dtype=torch.float32)
+    pretrained_embeddings[vocab.pad_idx] = torch.randn(fasttext_wv.vector_size, dtype=torch.float32)
+    pretrained_embeddings[vocab.unk_idx] = torch.randn(fasttext_wv.vector_size, dtype=torch.float32)
+    pretrained_embeddings[vocab.token_to_idx[' ']] = torch.randn(fasttext_wv.vector_size, dtype=torch.float32)
+
     # pretrained_embeddings = torch.tensor(pretrained_embeddings, dtype=torch.float32)
-    #     print(f'# Vocab not in the Embeddings: {oov}')
-    #     print(unks)
+    print(f'# Vocab not in the Embeddings: {oov}', flush=True)
+    print(unks, flush=True)
     return pretrained_embeddings
 
 def main():
@@ -764,6 +781,7 @@ def main():
     if args.do_inference:
         logger.info('Inference')
         set_seed(args.seed, args.use_cuda)
+        logger.info(f'Model Path:{args.model_path}')
         model.load_state_dict(torch.load(args.model_path))
         model.eval()
         device = torch.device('cpu')

@@ -13,7 +13,7 @@
 nvidia-smi
 module purge
 
-export EXPERIMENT_NAME=M.to.F
+export EXPERIMENT_NAME=F.to.M
 export DATA_DIR=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/
 
 python main_fin.py \
@@ -38,4 +38,4 @@ python main_fin.py \
  --do_train \
  --dropout 0.2 \
  --visualize_loss \
- --model_path /home/ba63/gender-bias/models/saved_models/$EXPERIMENT_NAME/char_level_improv_256_128_gender_1e-6_w_trg_fin_2_new_fasttext_space_1e-3.pt
+ --model_path /home/ba63/gender-bias/models/saved_models/$EXPERIMENT_NAME/char_level_improv_256_128_gender_1e-6_w_trg_fin_2_new_zero_morph_1e-3_clip_norm.pt

@@ -26,8 +26,8 @@ class BeamSearchNode:
         # Add here a function for shaping a reward
         # the log prob will be normalized by the length of the sentence
         # as defined by Wu et. al: https://arxiv.org/pdf/1609.08144.pdf
-        #return self.logp / float(self.leng - 1 + 1e-6) + alpha * reward
-        return self.logp / float(self.leng - 1 + 1e-6)**alpha
+        return self.logp / float(self.leng - 1 + 1e-6) + alpha * reward
+        #return self.logp / float(self.leng)**alpha
 
     def __lt__(self, other):
        """Overriding the less than function to handle
@@ -89,9 +89,20 @@ class BeamSampler(NMT_Batch_Sampler):
         #decoder_hidden = encoder_h_t
         decoder_hidden = torch.tanh(self.model.linear_map(encoder_h_t))
 
+        if self.model.decoder.rnn.num_layers > 1:
+            decoder_hidden = decoder_hidden.expand(self.model.decoder.rnn.num_layers,
+                                                decoder_hidden.shape[0],
+                                                decoder_hidden.shape[1]
+                                                ).contiguous()
+            # decoder_hidden shape: [num_layers, batch_size, decoder_hidd_dim]
+        else:
+            decoder_hidden = decoder_hidden.unsqueeze(0)
+            # decoder_hidden shape: [1, batch_size, decoder_hidd_dim]
+
         # initializing the context vectors to 0
-        # context_vectors = torch.zeros(1, self.model.decoder.hidd_dim)
-        context_vectors = torch.zeros(1, self.model.decoder.hidd_dim * 2)
+        #context_vectors = torch.zeros(1, self.model.decoder.hidd_dim)
+
+        context_vectors = torch.zeros(1, self.model.encoder.rnn.hidden_size * 2)
 
         # if beam_width == 1, then we're doing greedy decoding
         beam_width = beam_width
