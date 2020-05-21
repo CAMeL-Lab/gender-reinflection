@@ -14,21 +14,29 @@
 #SBATCH -o job.%J.out
 #SBATCH -e job.%J.err
 
-# A simple script that will compute the accuracy and BLEU scores 
-# between the models generated output and the gold references 
-
 module purge
 eval "$(conda shell.bash hook)"
-conda activate python3
+conda activate python2
 
 export EXPERIMENT_NAME=arin.to.M
-export SYSTEM_HYP=/home/ba63/gender-bias/models/new_decoder_inferences/$EXPERIMENT_NAME/dev_preds_improv_256_128_gender_1e-6_w_trg_fin_2_new_zero_morph_fasttext.inf
-export TRG_GOLD_DATA=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/D-set-dev.ar.M
 
+export DEV_SET=D-set-dev.ar.M
 
+export SYSTEM_HYP=/home/ba63/gender-bias/models/new_decoder_inferences/$EXPERIMENT_NAME/dev_preds_improv_256_128_gender_1e-6_w_trg_fin_2_new.inf
+
+export GOLD_ANNOTATION=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/edits_annotations/D-set-dev.$EXPERIMENT_NAME.edits_annotation
+
+export TRG_GOLD_DATA=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/$DEV_SET
+
+# run M2 Scorer evaluation
+m2_eval=$(python /home/ba63/m2scorer/scripts/m2scorer.py $SYSTEM_HYP $GOLD_ANNOTATION)
+
+conda activate python3
+
+# run accuracy evaluation
 accuracy=$(python /home/ba63/gender-bias/models/metrics.py --trg_directory $TRG_GOLD_DATA --pred_directory $SYSTEM_HYP)
 
+# run BLEU evaluation
 bleu=$(cat $SYSTEM_HYP | sacrebleu $TRG_GOLD_DATA --force --short)
 
-
-printf "Accuracy: $accuracy\nBLEU: $bleu" > eval
+printf "%s\n%-12s%s\n%-12s%s" "$m2_eval" "Accuracy" ": $accuracy" "BLEU" ": $bleu" > eval
