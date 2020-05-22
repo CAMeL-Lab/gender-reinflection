@@ -11,11 +11,11 @@ import torch
 class InputExample:
     """Simple object to encapsulate each data example"""
     def __init__(self, src, trg,
-                 src_g, trg_g):
+                 src_label, trg_label):
         self.src = src
         self.trg = trg
-        self.src_g = src_g
-        self.trg_g = trg_g
+        self.src_label = src_label
+        self.trg_label = trg_label
 
     def __repr__(self):
         return str(self.to_json_str())
@@ -37,18 +37,18 @@ class RawDataset:
     def create_examples(self, src_path, trg_path):
 
         src_txt = self.get_txt_examples(src_path)
-        src_gender_labels = self.get_labels(src_path + '.label')
+        src_labels = self.get_labels(src_path + '.label')
         trg_txt = self.get_txt_examples(trg_path)
-        trg_gender_labels = self.get_labels(trg_path + '.label')
+        trg_labels = self.get_labels(trg_path + '.label')
 
         examples = []
 
         for i in range(len(src_txt)):
             src = src_txt[i].strip()
             trg = trg_txt[i].strip()
-            src_g = src_gender_labels[i].strip()
-            trg_g = trg_gender_labels[i].strip()
-            input_example = InputExample(src, trg, src_g, trg_g)
+            src_label = src_labels[i].strip()
+            trg_label = trg_labels[i].strip()
+            input_example = InputExample(src, trg, src_label, trg_label)
             examples.append(input_example)
 
         return examples
@@ -149,16 +149,24 @@ class SeqVocabulary(Vocabulary):
 
 class GenderVocabulary(Vocabulary):
     """Gender vocabulary class"""
-    def __init__(self, token_to_idx=None, pad_token='<pad>'):
-
+    def __init__(self, token_to_idx=None):
         super(GenderVocabulary, self).__init__(token_to_idx)
-
-        self.pad_token = pad_token
-        self.pad_idx = self.add_token(self.pad_token)
 
     def to_serializable(self):
         contents = super(GenderVocabulary, self).to_serializable()
-        contents.update({'pad_token': self.pad_token})
+        return contents
+
+    @classmethod
+    def from_serializable(cls, contents):
+        return cls(**contents)
+
+class LabelVocabulary(Vocabulary):
+    """Label vocabulary class"""
+    def __init__(self, token_to_idx=None):
+        super(GenderVocabulary, self).__init__(token_to_idx)
+
+    def to_serializable(self):
+        contents = super(GenderVocabulary, self).to_serializable()
         return contents
 
     @classmethod
