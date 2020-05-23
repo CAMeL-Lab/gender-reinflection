@@ -122,7 +122,7 @@ class Decoder(nn.Module):
 
         self.dropout_layer = nn.Dropout(dropout)
 
-    def forward(self, trg_seqs, trg_gender, encoder_outputs, decoder_h_t, context_vectors, attention_mask):
+    def forward(self, trg_seqs, encoder_outputs, decoder_h_t, context_vectors, attention_mask, trg_gender=None):
         # trg_seqs shape: [batch_size]
         batch_size = trg_seqs.shape[0]
 
@@ -298,7 +298,7 @@ class Seq2Seq(nn.Module):
         mask = (src_seqs != src_padding_idx)
         return mask
 
-    def forward(self, char_src_seqs, word_src_seqs, src_seqs_lengths, trg_seqs, trg_gender, teacher_forcing_prob=0.3):
+    def forward(self, char_src_seqs, word_src_seqs, src_seqs_lengths, trg_seqs, trg_gender=None, teacher_forcing_prob=0.3):
         # trg_seqs shape: [batch_size, trg_seqs_length]
         # reshaping to: [trg_seqs_length, batch_size]
         trg_seqs = trg_seqs.permute(1, 0)
