@@ -11,11 +11,12 @@ import torch
 class InputExample:
     """Simple object to encapsulate each data example"""
     def __init__(self, src, trg,
-                 src_label, trg_label):
+                 src_label, trg_label, trg_gender):
         self.src = src
         self.trg = trg
         self.src_label = src_label
         self.trg_label = trg_label
+        self.trg_gender = trg_gender
 
     def __repr__(self):
         return str(self.to_json_str())
@@ -40,6 +41,7 @@ class RawDataset:
         src_labels = self.get_labels(src_path + '.label')
         trg_txt = self.get_txt_examples(trg_path)
         trg_labels = self.get_labels(trg_path + '.label')
+        trg_genders = self.get_trg_gender(trg_path + '.label')
 
         examples = []
 
@@ -48,12 +50,23 @@ class RawDataset:
             trg = trg_txt[i].strip()
             src_label = src_labels[i].strip()
             trg_label = trg_labels[i].strip()
-            input_example = InputExample(src, trg, src_label, trg_label)
+            trg_gender = trg_genders[i].strip()
+            input_example = InputExample(src=src,
+                                         trg=trg,
+                                         src_label=src_label,
+                                         trg_label=trg_label,
+                                         trg_gender=trg_gender
+                                         )
+
             examples.append(input_example)
 
         return examples
 
     def get_labels(self, data_dir):
+        with open(data_dir) as f:
+            return f.readlines()
+
+    def get_trg_gender(self, data_dir):
         with open(data_dir) as f:
             return f.readlines()
 
@@ -63,17 +76,17 @@ class RawDataset:
 
     def get_train_examples(self, data_dir):
         """Reads the train examples of the dataset"""
-        return self.create_examples(os.path.join(data_dir, 'D-set-train.ar.M'),
+        return self.create_examples(os.path.join(data_dir, 'D-set-train.arin'),
                                     os.path.join(data_dir, 'D-set-train.ar.F'))
 
     def get_dev_examples(self, data_dir):
         """Reads the dev examples of the dataset"""
-        return self.create_examples(os.path.join(data_dir, 'D-set-dev.ar.M'),
+        return self.create_examples(os.path.join(data_dir, 'D-set-dev.arin'),
                                     os.path.join(data_dir, 'D-set-dev.ar.F'))
 
     def get_test_examples(self, data_dir):
         """Reads the test examples of the dataset"""
-        return self.create_examples(os.path.join(data_dir, 'D-set-test.ar.M'),
+        return self.create_examples(os.path.join(data_dir, 'D-set-test.arin'),
                                     os.path.join(data_dir, 'D-set-test.ar.F'))
 
 class Vocabulary:
@@ -146,33 +159,6 @@ class SeqVocabulary(Vocabulary):
 
     def lookup_token(self, token):
         return self.token_to_idx.get(token, self.unk_idx)
-
-class GenderVocabulary(Vocabulary):
-    """Gender vocabulary class"""
-    def __init__(self, token_to_idx=None):
-        super(GenderVocabulary, self).__init__(token_to_idx)
-
-    def to_serializable(self):
-        contents = super(GenderVocabulary, self).to_serializable()
-        return contents
-
-    @classmethod
-    def from_serializable(cls, contents):
-        return cls(**contents)
-
-class LabelVocabulary(Vocabulary):
-    """Label vocabulary class"""
-    def __init__(self, token_to_idx=None):
-        super(GenderVocabulary, self).__init__(token_to_idx)
-
-    def to_serializable(self):
-        contents = super(GenderVocabulary, self).to_serializable()
-        return contents
-
-    @classmethod
-    def from_serializable(cls, contents):
-        return cls(**contents)
-
 
 class MorphFeaturizer:
     """Morphological Featurizer Class"""
