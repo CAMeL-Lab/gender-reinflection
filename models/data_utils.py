@@ -41,7 +41,7 @@ class RawDataset:
         src_labels = self.get_labels(src_path + '.label')
         trg_txt = self.get_txt_examples(trg_path)
         trg_labels = self.get_labels(trg_path + '.label')
-        trg_genders = self.get_trg_gender(trg_path + '.label')
+        trg_genders = self.get_trg_gender(trg_path + '.gender')
 
         examples = []
 
@@ -51,6 +51,7 @@ class RawDataset:
             src_label = src_labels[i].strip()
             trg_label = trg_labels[i].strip()
             trg_gender = trg_genders[i].strip()
+
             input_example = InputExample(src=src,
                                          trg=trg,
                                          src_label=src_label,
