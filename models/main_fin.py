@@ -283,7 +283,7 @@ class Collator:
                 'trg_x': padded_trg_x_seqs,
                 'trg_y': padded_trg_y_seqs,
                 'src_lengths': lengths,
-                'src_label': trg_seqs_labels,
+                'src_label': src_seqs_labels,
                 'trg_label': trg_seqs_labels,
                 'trg_gender': trg_seqs_genders
                 }
