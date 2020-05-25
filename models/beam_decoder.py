@@ -1,4 +1,4 @@
-from nmt_sampler_improv import NMT_Batch_Sampler
+from nmt_sampler import NMT_Batch_Sampler
 from queue import PriorityQueue
 import operator
 import torch
@@ -38,12 +38,17 @@ class BeamSearchNode:
 class BeamSampler(NMT_Batch_Sampler):
     """A subclass of NMT_Batch_Sampler that uses beam_search for decoding"""
     def __init__(self, model, src_vocab_char,
-                 src_vocab_word, trg_vocab,
-                 src_gender_vocab, trg_gender_vocab):
+                 src_vocab_word, trg_vocab_char,
+                 src_labels_vocab, trg_labels_vocab,
+                 trg_gender_vocab):
 
-        super(BeamSampler, self).__init__(model, src_vocab_char, src_vocab_word, trg_vocab, src_gender_vocab, trg_gender_vocab)
+        super(BeamSampler, self).__init__(model, src_vocab_char,
+                                          src_vocab_word, trg_vocab_char,
+                                          src_labels_vocab, trg_labels_vocab,
+                                          trg_gender_vocab
+                                          )
 
-    def beam_decode(self, sentence, trg_gender, topk=3, beam_width=5, max_len=512):
+    def beam_decode(self, sentence, trg_gender=None, topk=3, beam_width=5, max_len=512):
         """
         :param sentence: the source sentence
         :param topk: number of sentences to generate from beam search. Defaults to 3
@@ -68,24 +73,29 @@ class BeamSampler(NMT_Batch_Sampler):
         src_sentence_length = [len(vectorized_src_sentence_char)]
 
         # vectorizing the trg gender
-        vectorized_trg_gender = self.trg_gender_vocab.lookup_token(trg_gender)
+        if trg_gender:
+            vectorized_trg_gender = self.trg_gender_vocab.lookup_token(trg_gender)
+            vectorized_trg_gender = torch.tensor([vectorized_trg_gender], dtype=torch.long)
+        else:
+            vectorized_trg_gender = None
 
         # converting the lists to tensors
         vectorized_src_sentence_char = torch.tensor([vectorized_src_sentence_char], dtype=torch.long)
         vectorized_src_sentence_word = torch.tensor([vectorized_src_sentence_word], dtype=torch.long)
         src_sentence_length = torch.tensor(src_sentence_length, dtype=torch.long)
-        vectorized_trg_gender = torch.tensor([vectorized_trg_gender], dtype=torch.long)
+        
 
         # passing the src sentence to the encoder
         with torch.no_grad():
-            encoder_outputs, encoder_h_t= self.model.encoder(vectorized_src_sentence_char,
+            encoder_outputs, encoder_h_t = self.model.encoder(vectorized_src_sentence_char,
                                                              vectorized_src_sentence_word,
-                                                             src_sentence_length)
+                                                             src_sentence_length
+                                                             )
 
         # creating attention mask
         attention_mask = self.model.create_mask(vectorized_src_sentence_char, self.src_vocab_char.pad_idx)
 
-        # initilizating the first decoder_h_t to encoder_h_t
+        # initializing the first decoder_h_t to encoder_h_t
         #decoder_hidden = encoder_h_t
         decoder_hidden = torch.tanh(self.model.linear_map(encoder_h_t))
 
@@ -117,7 +127,7 @@ class BeamSampler(NMT_Batch_Sampler):
         decoded_batch = []
 
         # starting input to the decoder is the <s> token
-        decoder_input = torch.LongTensor([self.trg_vocab.sos_idx])
+        decoder_input = torch.LongTensor([self.trg_vocab_char.sos_idx])
 
         # number of sentences to generate
         endnodes = []
@@ -146,7 +156,7 @@ class BeamSampler(NMT_Batch_Sampler):
             decoder_hidden = n.h
 
             # if we predict the </s> token, this means we finished decoding a sentence
-            if n.wordid.item() == self.trg_vocab.eos_idx and n.prevNode != None:
+            if n.wordid.item() == self.trg_vocab_char.eos_idx and n.prevNode != None:
                 endnodes.append((score, n))
                 # if we reached maximum # of sentences required, stop beam search
                 if len(endnodes) >= number_required:
@@ -157,11 +167,12 @@ class BeamSampler(NMT_Batch_Sampler):
             # decode for one step using decoder
             with torch.no_grad():
                 decoder_output, decoder_hidden, atten_scores, context_vectors = self.model.decoder(trg_seqs=decoder_input,
-                                                                                                   trg_gender=vectorized_trg_gender,
                                                                                                    encoder_outputs=encoder_outputs,
                                                                                                    decoder_h_t=decoder_hidden,
                                                                                                    context_vectors=context_vectors,
-                                                                                                   attention_mask=attention_mask)
+                                                                                                   attention_mask=attention_mask,
+                                                                                                   trg_gender=vectorized_trg_gender
+                                                                                                   )
 
             # obtaining log probs from the decoder predictions
             decoder_output = F.log_softmax(decoder_output, dim=1)
@@ -213,7 +224,7 @@ class BeamSampler(NMT_Batch_Sampler):
 
         # print(decoded_sentences)
 #         decoded_batch.append(decoded_sentences)
-        str_decoded_sentence = self.get_str_sentence(decoded_sentences[0][1], self.trg_vocab)
+        str_decoded_sentence = self.get_str_sentence(decoded_sentences[0][1], self.trg_vocab_char)
         return str_decoded_sentence
 #         print(decoded_batch[0])
 #         return decoded_batch
