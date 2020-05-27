@@ -18,11 +18,11 @@ module purge
 eval "$(conda shell.bash hook)"
 conda activate python2
 
-export EXPERIMENT_NAME=arin.to.F
+export EXPERIMENT_NAME=arin.to.M
 
-export DEV_SET=D-set-dev.ar.F
+export DEV_SET=D-set-dev.ar.M
 
-export SYSTEM_HYP=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/D-set-dev.arin
+export SYSTEM_HYP=/home/ba63/gender-bias/models/logs/joint_models/$EXPERIMENT_NAME/dev_preds_256_128_2_layers_w_morph_w_trg_clip_norm.inf
 
 export GOLD_ANNOTATION=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/edits_annotations/D-set-dev.$EXPERIMENT_NAME.edits_annotation
 
@@ -39,4 +39,4 @@ accuracy=$(python /home/ba63/gender-bias/models/metrics.py --trg_directory $TRG_
 # run BLEU evaluation
 bleu=$(cat $SYSTEM_HYP | sacrebleu $TRG_GOLD_DATA --force --short)
 
-printf "%s\n%-12s%s\n%-12s%s" "$m2_eval" "Accuracy" ": $accuracy" "BLEU" ": $bleu" > eval
+printf "%s\n%s\n%-12s%s" "$m2_eval" "$accuracy" "BLEU" ": $bleu" > eval
