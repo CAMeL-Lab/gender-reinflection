@@ -2,4 +2,5 @@ Precision   : 0.6024
 Recall      : 0.4464
 F_0.5       : 0.5631
 Accuracy    : 0.9881755562357758
+Abs Length  : 0.013071895424836602
 BLEU        : BLEU+c.mixed+#.1+s.exp+tok.13a+v.1.4.9 = 97.3 98.8/97.8/96.9/96.0 (BP = 0.999 ratio = 0.999 hyp_len = 9195 ref_len = 9200)
