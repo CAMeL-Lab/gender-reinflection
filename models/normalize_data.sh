@@ -16,7 +16,10 @@
 
 module purge
 
-export DATA_DIR=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus
-export SPLIT_NAME=D-set-dev.ar.F
+export EXPERIMENT_NAME=arin.to.M
+export DATA_DIR=/home/ba63/gender-bias/models/logs/joint_models_norm/$EXPERIMENT_NAME/
 
-python normalize.py --input_file $DATA_DIR/$SPLIT_NAME --output_file $DATA_DIR/$SPLIT_NAME.normalized
+for f in $DATA_DIR*.inf
+do
+     python normalize.py --input_file $f --output_file $f.norm
+done
