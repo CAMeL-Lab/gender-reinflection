@@ -53,10 +53,10 @@ def main():
     args = parser.parse_args()
 
     examples = read_examples(args.input_file)
-    logger.info(f'Normalizing {len(examples)} examples from {args.input_file}...')
+    logger.info(f'Normalizing {len(examples)} examples from {args.input_file}')
     norm_examples = normalize(examples)
     write_examples(args.output_file, norm_examples)
-    logger.info(f'Normalized examples written to {args.output_file}!')
+    logger.info(f'Normalized examples written to {args.output_file}')
 
 if __name__ == "__main__":
     main()
