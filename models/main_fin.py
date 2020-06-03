@@ -327,7 +327,7 @@ def train(model, dataloader, optimizer, criterion, device='cpu', teacher_forcing
         epoch_loss += loss.item()
 
         loss.backward()
-        #clip_grad_norm_(model.parameters(), max_norm=1.0)
+        clip_grad_norm_(model.parameters(), max_norm=1.0)
         optimizer.step()
 
     return epoch_loss / len(dataloader)
@@ -489,7 +489,7 @@ def get_morph_features(args, data, word_vocab):
 def load_fasttext_embeddings(args, vocab):
     set_seed(args.seed, args.use_cuda)
     fasttext_wv = KeyedVectors.load(args.fasttext_embeddings_kv_path, mmap='r')
-    space_embedding = torch.randn(fasttext_wv.vector_size, dtype=torch.float32)
+    #space_embedding = torch.randn(fasttext_wv.vector_size, dtype=torch.float32)
     pretrained_embeddings = torch.zeros((len(vocab), fasttext_wv.vector_size), dtype=torch.float32)
     oov = 0
     unks = list()
@@ -502,10 +502,10 @@ def load_fasttext_embeddings(args, vocab):
             unks.append(word)
 
     # remapping the embeddings of <s>, <pad>, ' ', and <unk> to zero embeddings
-    pretrained_embeddings[vocab.sos_idx] = torch.zeros(fasttext_wv.vector_size, dtype=torch.float32)
-    pretrained_embeddings[vocab.pad_idx] = torch.zeros(fasttext_wv.vector_size, dtype=torch.float32)
-    pretrained_embeddings[vocab.unk_idx] = torch.zeros(fasttext_wv.vector_size, dtype=torch.float32)
-    pretrained_embeddings[vocab.token_to_idx[' ']] = torch.zeros(fasttext_wv.vector_size, dtype=torch.float32) * 1e-3
+    #pretrained_embeddings[vocab.sos_idx] = torch.zeros(fasttext_wv.vector_size, dtype=torch.float32)
+    #pretrained_embeddings[vocab.pad_idx] = torch.zeros(fasttext_wv.vector_size, dtype=torch.float32)
+    #pretrained_embeddings[vocab.unk_idx] = torch.zeros(fasttext_wv.vector_size, dtype=torch.float32)
+    #pretrained_embeddings[vocab.token_to_idx[' ']] = torch.zeros(fasttext_wv.vector_size, dtype=torch.float32) * 1e-3
 
     # pretrained_embeddings = torch.tensor(pretrained_embeddings, dtype=torch.float32)
     print(f'# Vocab not in the Embeddings: {oov}', flush=True)
@@ -572,6 +572,12 @@ def main():
         default=0.0,
         type=float,
         help="Dropout rate."
+    )
+    parser.add_argument(
+        "--weight_decay",
+        default=0.0,
+        type=float,
+        help="Optimizer weight decay"
     )
     parser.add_argument(
         "--learning_rate",
@@ -742,7 +748,7 @@ def main():
                     dropout=args.dropout
                     )
 
-    optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
     criterion = nn.CrossEntropyLoss(ignore_index=TRG_PAD_INDEX)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
                                                     patience=2, factor=0.5)
