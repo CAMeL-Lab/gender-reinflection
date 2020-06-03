@@ -139,7 +139,7 @@ class Decoder(nn.Module):
 
         # concatenating the embedded trg sequence with the context_vectors
         rnn_input = torch.cat((embedded_seqs, context_vectors), dim=2)
-        # rnn_input shape: [batch_size, embed_dim + encoder_hidd_dim * 2]
+        # rnn_input shape: [batch_size, 1, embed_dim + encoder_hidd_dim * 2]
 
         # Step 2: feeding the input to the rnn and updating the decoder_h_t
         decoder_output, decoder_h_t = self.rnn(rnn_input, decoder_h_t)
@@ -338,7 +338,8 @@ class Seq2Seq(nn.Module):
         y_t = y_t.to(encoder_hidd.device)
         context_vectors = context_vectors.to(encoder_hidd.device)
 
-        for i in range(trg_seqs_length):
+        for i in range(0, trg_seqs_length):
+
             teacher_forcing = np.random.random() < teacher_forcing_prob
             # if teacher_forcing, use ground truth target tokens
             # as an input to the decoder
@@ -353,6 +354,7 @@ class Seq2Seq(nn.Module):
                                                                                   context_vectors=context_vectors,
                                                                                   attention_mask=attention_mask
                                                                                   )
+
 
             # If not teacher force, use the maximum 
             # prediction as an input to the decoder in 
