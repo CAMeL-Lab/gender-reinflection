@@ -188,7 +188,6 @@ class AdditiveAttention(nn.Module):
     """Attention mechanism as a MLP
     as used by Bahdanau et. al 2015"""
 
-    # def __init__(self, encoder_hidd_dim, decoder_hidd_dim, num_layers):
     def __init__(self, encoder_hidd_dim, decoder_hidd_dim):
         super(AdditiveAttention, self).__init__()
         self.atten = nn.Linear((encoder_hidd_dim * 2) + decoder_hidd_dim, decoder_hidd_dim)
@@ -244,6 +243,49 @@ class AdditiveAttention(nn.Module):
 
         return context_vectors, atten_scores
 
+class GeneralAttention(nn.Module):
+    """General Attention mechanism
+    as described by Luong et. al 2015"""
+
+    def __init__(self, encoder_hidd_dim, decoder_hidd_dim):
+        super(GeneralAttention, self).__init__()
+        self.linear_map = nn.Linear(encoder_hidd_dim * 2, decoder_hidd_dim, bias=False)
+
+    def forward(self, key_vectors, query_vector, mask):
+        """key_vectors: encoder hidden states.
+           query_vector: decoder hidden state at time t
+           mask: the mask vector of zeros and ones
+        """
+
+        #key_vectors shape: [batch_size, src_seq_length, encoder_hidd_dim * 2]
+        #query_vector shape: [num_layers * num_dirs, batch_size, decoder_hidd_dim]
+
+        batch_size, src_seq_length, encoder_hidd_dim = key_vectors.shape
+
+        # applying attention to the last hidden state of the decoder
+        query_vector = query_vector[-1, :, :]
+        # query_vector shape: [batch_size, decoder_hidd_dim]
+
+        # mapping the key_vectors from encoder_hidd_dim * 2 to decoder_hidd_dim
+        mapped_key_vectors = self.linear_map(key_vectors)
+        # key_vectors shape: [batch_size, src_seq_length, decoder_hidd_dim]
+
+        # performing the dot product
+        atten_scores = torch.matmul(query_vector.unsqueeze(1), mapped_key_vectors.permute(0, 2, 1)).squeeze(1)
+        # atten_scores shape: [batch_size, src_seq_len]
+
+        # masking the atten_scores
+        atten_scores = atten_scores.masked_fill(mask == 0, -1e10)
+
+        # Step 2: normalizing atten_scores through a softmax to get probs
+        atten_scores = F.softmax(atten_scores, dim=1)
+
+        # Step 3: computing the new context vector
+        context_vectors = torch.matmul(key_vectors.permute(0, 2, 1), atten_scores.unsqueeze(2)).squeeze(dim=2)
+
+        # context_vectors shape: [batch_size, encoder_hidd_dim * 2]
+
+        return context_vectors, atten_scores
 
 class Seq2Seq(nn.Module):
     """Seq2Seq model"""
