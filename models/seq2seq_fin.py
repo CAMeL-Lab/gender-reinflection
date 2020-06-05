@@ -68,8 +68,12 @@ class Encoder(nn.Module):
         # hidd shape: [num_layers * num_dirs, batch_size, hidd_dim]
 
         # getting the last forward and backward hidden states
-        hidd = torch.cat((hidd[-2, :, :], hidd[-1, :, :]), dim=1)
+        # hidd = torch.cat((hidd[-2, :, :], hidd[-1, :, :]), dim=1)
         # hidd shape: [batch_size, num dirs * hidd_dim]
+
+        # concatenating the forward and backward vectors for each layer
+        hidd = torch.cat([hidd[0:hidd.size(0):2], hidd[1:hidd.size(0):2]], dim=2)
+        # hidd shape: [num layers, batch_size, num_directions * hidd_dim]
 
         # unpacking the output
         output, lengths = pad_packed_sequence(output, batch_first=True)
@@ -188,7 +192,7 @@ class AdditiveAttention(nn.Module):
     def __init__(self, encoder_hidd_dim, decoder_hidd_dim):
         super(AdditiveAttention, self).__init__()
         self.atten = nn.Linear((encoder_hidd_dim * 2) + decoder_hidd_dim, decoder_hidd_dim)
-        self.v = nn.Linear(decoder_hidd_dim, 1)
+        self.v = nn.Linear(decoder_hidd_dim, 1, bias=False)
 
     def forward(self, key_vectors, query_vector, mask):
         """key_vectors: encoder hidden states.
@@ -201,11 +205,9 @@ class AdditiveAttention(nn.Module):
 
         batch_size, src_seq_length, encoder_hidd_dim = key_vectors.shape
 
-        # applying attention to the last hidden state of the decoder
+        # applying attention to the hidden state at the last layer of the decoder
         query_vector = query_vector[-1, :, :]
-
-        # query_vector = query_vector.view(query_vector.shape[1], -1)
-        # query_vector shape: [batch_size, num_layers * num_dirs * decoder_hidd_dim]
+        # query_vector shape: [batch_size, decoder_hidd_dim]
 
         #changing the shape of query_vector to [batch_size, src_seq_length, decoder_hidd_dim]
         #we will repeat the query_vector src_seq_length times at dim 1
@@ -324,15 +326,15 @@ class Seq2Seq(nn.Module):
         decoder_h_t = torch.tanh(self.linear_map(encoder_hidd))
         # decoder_h_t shape: [batch_size, decoder_hidd_dim]
 
-        if self.decoder.rnn.num_layers > 1:
-            decoder_h_t = decoder_h_t.expand(self.decoder.rnn.num_layers,
-                                            decoder_h_t.shape[0],
-                                            decoder_h_t.shape[1]
-                                            ).contiguous()
-            # decoder_h_t shape: [num_layers, batch_size, decoder_hidd_dim]
-        else:
-            decoder_h_t = decoder_h_t.unsqueeze(0)
-            # decoder_h_t shape: [1, batch_size, decoder_hidd_dim]
+        # if self.decoder.rnn.num_layers > 1:
+        #     decoder_h_t = decoder_h_t.expand(self.decoder.rnn.num_layers,
+        #                                     decoder_h_t.shape[0],
+        #                                     decoder_h_t.shape[1]
+        #                                     ).contiguous()
+        #     # decoder_h_t shape: [num_layers, batch_size, decoder_hidd_dim]
+        # else:
+        #     decoder_h_t = decoder_h_t.unsqueeze(0)
+        #     # decoder_h_t shape: [1, batch_size, decoder_hidd_dim]
 
         # moving y_t and context_vectors to the right device
         y_t = y_t.to(encoder_hidd.device)
