@@ -1,10 +1,13 @@
 import argparse
 
 def accuracy(trg, pred):
-     """
+     """Computes accuracy between a target sequence
+     and a predicted sequence
+
      Args:
         - trg (str): reference
         - pred (str): generated output
+
      Returns:
         - acc (float): word level accuracy
      """
@@ -20,10 +23,13 @@ def accuracy(trg, pred):
      return float(acc) / float(len(trg_words))
 
 def corpus_accuracy(trg_corpus, pred_corpus):
-    """
+    """Computes accuracy between a list of target
+    sequences and a list of predicted sequences
+
     Args:
         - trg_corpus (list): list of references
         - pred_corpus (list): list of model's predictions
+
     Returns:
         - corpus_acc (float): average accuracy accross the corpus
     """
@@ -33,11 +39,14 @@ def corpus_accuracy(trg_corpus, pred_corpus):
     return corpus_acc / len(trg_corpus)
 
 def abs_length_diff(trg, pred):
-    """
-     Args:
+    """Computes absolute length difference
+    between a target sequence and a predicted sequence
+
+    Args:
         - trg (str): reference
         - pred (str): generated output
-     Returns:
+
+    Returns:
         - absolute length difference (int)
      """
     trg_length = len(trg.split(' '))
@@ -45,7 +54,10 @@ def abs_length_diff(trg, pred):
     return abs(trg_length - pred_length)
 
 def corpus_abs_length_diff(trg_corpus, pred_corpus):
-    """
+    """Computes abslute length difference
+    between a list of target sequences and list
+    of predicted sequences
+
     Args:
         - trg_corpus (list): list of references
         - pred_corpus (list): list of model's predictions
@@ -69,6 +81,7 @@ def main():
         type=str,
         help="Directory of the target corpus"
     )
+
     parser.add_argument(
         '--pred_directory',
         default=None,
@@ -83,11 +96,10 @@ def main():
     assert len(trg_examples) == len(pred_examples)
 
     accuracy = corpus_accuracy(trg_corpus=trg_examples,
-                               pred_corpus=pred_examples
-                              )
+                               pred_corpus=pred_examples)
+
     abs_diff = corpus_abs_length_diff(trg_corpus=trg_examples,
-                                      pred_corpus=pred_examples,
-                                     )
+                                      pred_corpus=pred_examples)
 
     eval_res = "Accuracy{:>6s}{}\nAbs Length{:>4s}{}".format(": ", accuracy, ": ", abs_diff)
     print(eval_res)
