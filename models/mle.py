@@ -21,7 +21,7 @@ class MLE:
             - examples (list): list of InputExample objects
         Returns:
             - mle model (default dict): The mle model where the
-            keys are (sw, trg_gender) and vals are trg_w
+            keys are (sw, trg_gender) and vals are trg_w 
         """
 
         model = defaultdict(lambda: defaultdict(lambda: 0))
@@ -58,7 +58,7 @@ class MLE:
 
 def reinflect(model, src_sentence, trg_g):
     """
-    Reinflects a sentence based on the mle model.
+    Reinflects a sentence based on the mle model. 
     At each time step, the model will pick the word with maximum prob.
     Args:
     - src_sentence (str): the source sentence
@@ -74,7 +74,7 @@ def reinflect(model, src_sentence, trg_g):
     return ' '.join(target)
 
 def inference(model, data_examples, args):
-    output_file = open(args.preds_dir, mode='w', encoding='utf8')
+    output_file = open(args.preds_dir + '.inf', mode='w', encoding='utf8')
     stats = {}
     mle_acc = 0
 
