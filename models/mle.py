@@ -19,9 +19,10 @@ class MLE:
         """
         Args:
             - examples (list): list of InputExample objects
+
         Returns:
             - mle model (default dict): The mle model where the
-            keys are (sw, trg_gender) and vals are trg_w 
+            keys are (sw, trg_gender) and vals are trg_w
         """
 
         model = defaultdict(lambda: defaultdict(lambda: 0))
@@ -43,7 +44,7 @@ class MLE:
         # turning the counts into probs
         for sw, trg_g in model:
             for trg_w in model[(sw, trg_g)]:
-                model[(sw, trg_g)][trg_w] = float(model[(sw, trg_g)][trg_w]) / context_counts[(sw, trg_g)] 
+                model[(sw, trg_g)][trg_w] = float(model[(sw, trg_g)][trg_w]) / context_counts[(sw, trg_g)]
 
         return cls(model)
 
@@ -57,12 +58,15 @@ class MLE:
         return len(self.model)
 
 def reinflect(model, src_sentence, trg_g):
-    """
-    Reinflects a sentence based on the mle model. 
+    """Reinflects a sentence based on the mle model.
     At each time step, the model will pick the word with maximum prob.
+
     Args:
-    - src_sentence (str): the source sentence
-    - trg_g (str): the target gender
+        - src_sentence (str): the source sentence
+        - trg_g (str): the target gender
+
+    Returns:
+        - reinflected sentence (str)
     """
     src = src_sentence.split(' ')
     target = []
@@ -74,6 +78,13 @@ def reinflect(model, src_sentence, trg_g):
     return ' '.join(target)
 
 def inference(model, data_examples, args):
+    """Does inference on a set of examples
+    given a model.
+
+    Args:
+        - model (MLE): mle model
+        - data_examples (list): list of InputExample objects
+    """
     output_file = open(args.preds_dir + '.inf', mode='w', encoding='utf8')
     stats = {}
     mle_acc = 0
@@ -132,7 +143,8 @@ def main():
         default=None,
         type=str,
         required=True,
-        help="The input data dir. Should contain the src and trg files.")
+        help="The input data dir. Should contain the src and trg files."
+    )
     parser.add_argument(
         "--inference_mode",
         type=str,
