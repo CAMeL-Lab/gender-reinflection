@@ -52,7 +52,6 @@ class MLE:
         if sw_tg in self.model:
             return dict(self.model[sw_tg])
         else:
-            #return {'<unk>': 0.0}
              return{sw_tg[0]: 0.0}
 
     def __len__(self):
