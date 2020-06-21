@@ -203,7 +203,7 @@ def main():
 
     if args.inference_mode == 'dev':
         inference(mle_model, raw_data.dev_examples, args)
-    elif args.inference == 'test':
+    elif args.inference_mode == 'test':
         inference(mle_model, raw_data.test_examples, args)
 
 if __name__ == "__main__":
