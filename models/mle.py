@@ -8,18 +8,37 @@ from metrics import accuracy
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def build_ngrams(sentence, pad_right=False, pad_left=False, ngrams=1):
+    """
+    Args:
+     - sentence (str): a list of words
+     - ngrams (int): 2 for bigrams, 3 for trigrams, etc..
+     - pad_right (bool): adding </s> to the end of sentence
+     - pad_left (bool): adding <s> to the beginning of sentence
+
+    Returns:
+     - ngrams of the sentence (list of tuples)
+    """
+
+    if pad_right:
+        sentence = sentence + ['</s>'] * (ngrams - 1)
+    if pad_left:
+        sentence = ['<s>'] * (ngrams - 1) + sentence
+    return [tuple(sentence[i - (ngrams - 1): i + 1]) for i in range(ngrams - 1, len(sentence))]
+
 class MLE:
     """MLE to model P(t_w | s_w, t_g)"""
 
-    def __init__(self, model):
+    def __init__(self, model, ngrams):
         self.model = model
+        self.ngrams = ngrams
 
     @classmethod
-    def build_model(cls, examples):
+    def build_model(cls, examples, ngrams=1):
         """
         Args:
             - examples (list): list of InputExample objects
-
+            - ngrams (int): number of ngrams
         Returns:
             - mle model (default dict): The mle model where the
             keys are (sw, trg_gender) and vals are trg_w
@@ -35,47 +54,56 @@ class MLE:
             src = src.split(' ')
             trg = trg.split(' ')
 
-            for i, trg_w in enumerate(trg):
-                # counts of (t_w, s_w, t_g)
-                model[(src[i], trg_g)][trg_w] += 1
-                # counts of (s_w, t_g)
-                context_counts[(src[i], trg_g)] = 1 + context_counts.get((src[i], trg_g), 0)
+            # getting counts of all ngrams
+            # until ngrams == 1
+            for i in range(ngrams):
+                src_ngrams = build_ngrams(src, ngrams=i + 1, pad_left=True)
+                for j, trg_w in enumerate(trg):
+                    # counts of (t_w, s_w, t_g)
+                    model[(src_ngrams[j], trg_g)][trg_w] += 1
+                    # counts of (s_w, t_g)
+                    context_counts[(src_ngrams[j], trg_g)] = 1 + context_counts.get((src_ngrams[j], trg_g), 0)
 
         # turning the counts into probs
         for sw, trg_g in model:
             for trg_w in model[(sw, trg_g)]:
                 model[(sw, trg_g)][trg_w] = float(model[(sw, trg_g)][trg_w]) / context_counts[(sw, trg_g)]
 
-        return cls(model)
+        return cls(model, ngrams)
 
     def __getitem__(self, sw_tg):
-        if sw_tg in self.model:
-            return dict(self.model[sw_tg])
-        else:
-             return{sw_tg[0]: 0.0}
+        context, trg_gender = sw_tg[0], sw_tg[1]
+        # keep backing-off until a context is found
+        for i in range(self.ngrams):
+            if (context[i:], trg_gender) in self.model:
+                return dict(self.model[(context[i:], trg_gender)])
+
+        # worst case, pass the word as it is
+        return {context[-1]: 0.0}
+
 
     def __len__(self):
         return len(self.model)
 
-def reinflect(model, src_sentence, trg_g):
-    """Reinflects a sentence based on the mle model.
+def reinflect(model, src_sentence, trg_g, ngrams=1):
+    """
+    Reinflects a sentence based on the mle model.
     At each time step, the model will pick the word with maximum prob.
-
     Args:
-        - src_sentence (str): the source sentence
-        - trg_g (str): the target gender
-
-    Returns:
-        - reinflected sentence (str)
+    - src_sentence (str): the source sentence
+    - trg_g (str): the target gender
     """
     src = src_sentence.split(' ')
+    src_ngrams = build_ngrams(src, ngrams=ngrams, pad_left=True)
     target = []
-    for sw in src:
+    for sw in src_ngrams:
         candidates = model[(sw, trg_g)]
+        # print(candidates)
         argmax = max(candidates.items(), key=operator.itemgetter(1))[0]
         target.append(argmax)
 
     return ' '.join(target)
+
 
 def inference(model, data_examples, args):
     """Does inference on a set of examples
@@ -95,7 +123,7 @@ def inference(model, data_examples, args):
         trg_gender = example.trg_gender
         src_label = example.src_label
         trg_label = example.trg_label
-        inference = reinflect(model=model, src_sentence=src, trg_g=trg_gender)
+        inference = reinflect(model=model, src_sentence=src, trg_g=trg_gender, ngrams=args.ngrams)
         mle_acc += accuracy(trg=trg, pred=inference)
         correct = 'CORRECT!' if trg == inference else 'INCORRECT!'
         if inference == trg:
@@ -146,6 +174,12 @@ def main():
         help="The input data dir. Should contain the src and trg files."
     )
     parser.add_argument(
+        "--ngrams",
+        type=int,
+        default=1,
+        help="The MLE model ngrams."
+    )
+    parser.add_argument(
         "--inference_mode",
         type=str,
         default="dev",
@@ -165,11 +199,11 @@ def main():
     raw_data = RawDataset(args.data_dir)
 
     # building the MLE model based on the training examples
-    mle_model = MLE.build_model(raw_data.train_examples)
+    mle_model = MLE.build_model(raw_data.train_examples, ngrams=args.ngrams)
 
     if args.inference_mode == 'dev':
         inference(mle_model, raw_data.dev_examples, args)
-    elif args.inference == 'test':
+    elif args.inference_mode == 'test':
         inference(mle_model, raw_data.test_examples, args)
 
 if __name__ == "__main__":
