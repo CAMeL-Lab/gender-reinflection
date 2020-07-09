@@ -22,11 +22,13 @@ export EXPERIMENT_NAME=arin.to.M
 
 export DEV_SET=D-set-dev.ar.M
 
-export SYSTEM_HYP=/home/ba63/gender-bias/models/logs/joint_models/$EXPERIMENT_NAME/dev_preds_256_128_2_layers_w_morph_w_trg_clip_norm.inf
+#export SYSTEM_HYP=/home/ba63/gender-bias/models/logs/joint_models/$EXPERIMENT_NAME/dev_do_nothing.inf
 
-export GOLD_ANNOTATION=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/edits_annotations/D-set-dev.$EXPERIMENT_NAME.edits_annotation
+export SYSTEM_HYP=/home/ba63/gender-bias/models/logs/disjoint_models/$EXPERIMENT_NAME/dev_preds_256_128_2_layers_w_morph_top_1_analyses_w_trg_clip_norm_new_enc_new_no_bias_v_char_10_trg_no_last_normalized.inf
 
-export TRG_GOLD_DATA=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/$DEV_SET
+export GOLD_ANNOTATION=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/edits_annotations_normalized/D-set-dev.$EXPERIMENT_NAME.edits_annotation.normalized
+
+export TRG_GOLD_DATA=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/$DEV_SET.normalized
 
 # run M2 Scorer evaluation
 m2_eval=$(python /home/ba63/m2scorer/scripts/m2scorer.py $SYSTEM_HYP $GOLD_ANNOTATION)

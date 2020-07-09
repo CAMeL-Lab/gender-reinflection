@@ -19,16 +19,16 @@ eval "$(conda shell.bash hook)"
 
 export EXPERIMENT_NAME=arin.to.F
 
-export DEV_SET=D-set-dev.ar.F
+export DEV_SET=D-set-test.ar.F
 
 # export SYSTEM_HYP=/home/ba63/gender-bias/models/logs/joint_models_norm/$EXPERIMENT_NAME/dev_preds_256_128_2_layers_w_trg_clip_norm_new_enc_new_no_bias_v_char_10_trg_no_last.inf.norm
 
 # export SYSTEM_HYP=/home/ba63/gender-bias/models/logs/joint_models_norm/$EXPERIMENT_NAME/mle_baseline_5gram.inf.norm
 
-export GOLD_ANNOTATION=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/edits_annotations_normalized/D-set-dev.$EXPERIMENT_NAME.edits_annotation.normalized
+export GOLD_ANNOTATION=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/edits_annotations_normalized/D-set-test.$EXPERIMENT_NAME.edits_annotation.normalized
 export TRG_GOLD_DATA=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/$DEV_SET.normalized
 
-for SYSTEM_HYP in /home/ba63/gender-bias/models/logs/joint_models_norm/$EXPERIMENT_NAME/*.inf.norm
+for SYSTEM_HYP in /home/ba63/gender-bias/models/logs/joint_models_norm/$EXPERIMENT_NAME/test*.inf.norm
 do
     conda activate python2
     

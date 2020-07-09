@@ -143,13 +143,13 @@ def error_analysis(predictions, gold_data):
 
     assert sum(list(reinflect_stats.values())) == sum(list(eval_stats.values()))
 
-    logger.info('\t\tReinflection\t\t\tEvaluation')
+    logger.info('\t\tDecisions\t\t\tReinflections')
     logger.info('\t\tGood\tBad\t\t\tGood\tBad')
     for k in reinflect_stats:
         t_tag = k[0]
         p_tag = k[1]
-        logger.info(k[0] + '-' + k[1] + '\t' 
-                    + str(reinflect_stats.get((t_tag, p_tag, 'G'), 0)) 
+        logger.info(k[0] + '-' + k[1] + '\t'
+                    + str(reinflect_stats.get((t_tag, p_tag, 'G'), 0))
                     + '\t' + str(reinflect_stats.get((t_tag, p_tag, 'B'), 0))
                     + '\t\t\t' + str(eval_stats.get((t_tag, p_tag, 'G'), 0))
                     + '\t' + str(eval_stats.get((t_tag, p_tag, 'B'), 0)))
@@ -183,7 +183,7 @@ def main():
 
     if args.inference_mode == 'dev':
         error_analysis(predictions=inference_data, gold_data=gold_data.dev_examples)
-    elif args.inference == 'test':
+    elif args.inference_mode == 'test':
         error_analysis(predictions=inference_data, gold_data=gold_data.test_examples)
 
 if __name__ == "__main__":

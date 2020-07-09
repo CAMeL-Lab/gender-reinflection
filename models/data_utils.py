@@ -56,8 +56,7 @@ class RawDataset:
                                          trg=trg,
                                          src_label=src_label,
                                          trg_label=trg_label,
-                                         trg_gender=trg_gender
-                                         )
+                                         trg_gender=trg_gender)
 
             examples.append(input_example)
 
@@ -77,18 +76,22 @@ class RawDataset:
 
     def get_train_examples(self, data_dir):
         """Reads the train examples of the dataset"""
-        return self.create_examples(os.path.join(data_dir, 'D-set-train.arin'),
-                                    os.path.join(data_dir, 'D-set-train.ar.F'))
+        #joint_model/S-set.M.uniq+S-set.M.uniq+S-set.F.uniq+S-set.F.uniq+D-set-train.arin+D-set-train.arin
+        #joint_model/S-set.M.uniq+S-set.F.uniq+S-set.M.uniq+S-set.F.uniq+D-set-train.ar.M+D-set-train.ar.F
+        #joint_model/D-set-train.arin+D-set-train.arin
+        #joint_model/D-set-train.ar.M+D-set-train.ar.F
+        return self.create_examples(os.path.join(data_dir, 'joint_model/D-set-train.arin+D-set-train.arin'),
+                                    os.path.join(data_dir, 'joint_model/D-set-train.ar.M+D-set-train.ar.F'))
 
     def get_dev_examples(self, data_dir):
         """Reads the dev examples of the dataset"""
         return self.create_examples(os.path.join(data_dir, 'D-set-dev.arin'),
-                                    os.path.join(data_dir, 'D-set-dev.ar.F'))
+                                    os.path.join(data_dir, 'D-set-dev.ar.M'))
 
     def get_test_examples(self, data_dir):
         """Reads the test examples of the dataset"""
-        return self.create_examples(os.path.join(data_dir, 'D-set-test.arin'),
-                                    os.path.join(data_dir, 'D-set-test.ar.F'))
+        return self.create_examples(os.path.join(data_dir, 'joint_model/D-set-test.arin+D-set-test.arin.normalized'),
+                                    os.path.join(data_dir, 'joint_model/D-set-test.ar.M+D-set-test.ar.F.normalized'))
 
 class Vocabulary:
     """Base vocabulary class"""
@@ -179,7 +182,7 @@ class MorphFeaturizer:
               [lex+m lex+f spvar+m spvar+f]
         """
         # using the MLEDisambiguator to get the analyses
-        disambiguations = self.disambiguator.disambiguate(sentence.split(' '), top=0)
+        disambiguations = self.disambiguator.disambiguate(sentence.split(' '), top=1)
         # disambiguations is a list of DisambiguatedWord objects
         # each DisambiguatedWord object is a tuple of: (word, scored_analyses)
         # scored_analyses is a list of ScoredAnalysis objects
@@ -197,16 +200,28 @@ class MorphFeaturizer:
 
                         # getting the source and gender features
                         src = analysis['source']
-                        gen = analysis['gen']
+                        func_gen = analysis['gen']
+                        #form_gen = analysis['form_gen']
 
-                        if src == 'lex' and gen == 'm':
+                        # functional gender features
+                        if src == 'lex' and func_gen == 'm':
                             features[0] = 1
-                        elif src == 'lex' and gen == 'f':
+                        elif src == 'lex' and func_gen == 'f':
                             features[1] = 1
-                        elif src == 'spvar' and gen == 'm':
+                        elif src == 'spvar' and func_gen == 'm':
                             features[2] = 1
-                        elif src == 'spvar' and gen == 'f':
+                        elif src == 'spvar' and func_gen == 'f':
                             features[3] = 1
+
+                        # form gender features
+                        #if src == 'lex' and form_gen == 'm':
+                        #    features[0] = 1
+                        #elif src == 'lex' and form_gen == 'f':
+                        #    features[1] = 1
+                        #elif src == 'spvar' and form_gen == 'm':
+                        #    features[2] = 1
+                        #elif src == 'spvar' and form_gen == 'f':
+                        #    features[3] = 1
 
                         self.w_to_features[word].append(features)
 
@@ -215,7 +230,7 @@ class MorphFeaturizer:
                     self.w_to_features[word] = self.w_to_features[word].sum(axis=0)
                     # replacing all the elements > with 1
                     self.w_to_features[word][self.w_to_features[word] > 0] = 1
-                   # replacing all the 0 elements with 1e-6 
+                    # replacing all the 0 elements with 1e-6 
                     self.w_to_features[word][self.w_to_features[word] == 0] = 1e-6
                     self.w_to_features[word] = self.w_to_features[word].tolist()
                 else:
@@ -261,14 +276,11 @@ class MorphFeaturizer:
 
         return morph_embedding_matrix
 
-def accuracy(trg, pred):
-    trg_words = trg.split(' ')
-    pred_words = pred.split(' ')
-    acc = 0
-    for i, w in enumerate(trg_words):
-        if i < len(pred_words):
-            if w == pred_words[i]:
-                acc += 1
-        else:
-            break
-    return float(acc) / float(len(trg_words))
+def create_gender_embeddings(trg_gender_vocab):
+    """Creates one-hot vectors gender embeddings"""
+    matrix = torch.zeros((len(trg_gender_vocab), len(trg_gender_vocab)), dtype=torch.float32)
+    m_idx = trg_gender_vocab.lookup_token('M')
+    f_idx = trg_gender_vocab.lookup_token('F')
+    matrix[m_idx] = torch.tensor([1, 1e-6], dtype=torch.float32)
+    matrix[f_idx] = torch.tensor([1e-6, 1], dtype=torch.float32)
+    return matrix

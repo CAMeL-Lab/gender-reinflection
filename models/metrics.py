@@ -93,6 +93,7 @@ def main():
 
     trg_examples = read_examples(args.trg_directory)
     pred_examples = read_examples(args.pred_directory)
+
     assert len(trg_examples) == len(pred_examples)
 
     accuracy = corpus_accuracy(trg_corpus=trg_examples,

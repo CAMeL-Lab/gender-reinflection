@@ -75,7 +75,8 @@ def gender_id(predictions, gold_data):
         input_gender = x[0]
         predicted_gender = x[1]
         logger.info(f'{input_gender}->{predicted_gender}')
-        logger.info(f'\tCorrect: {correct_gender_id.get((input_gender, predicted_gender), 0)}\tIncorrect: {incorrect_gender_id.get((input_gender, predicted_gender), 0)}')
+        logger.info(f'\tCorrect: {correct_gender_id.get((input_gender, predicted_gender), 0)}'\
+                     '\tIncorrect: {incorrect_gender_id.get((input_gender, predicted_gender), 0)}')
 
     logger.info(f'--------------------------------')
     logger.info(f'Total Correct: {total_correct}\tTotal Incorrect: {total_incorrect}')
