@@ -83,7 +83,7 @@ class BeamSampler(NMT_Batch_Sampler):
         vectorized_src_sentence_char = torch.tensor([vectorized_src_sentence_char], dtype=torch.long)
         vectorized_src_sentence_word = torch.tensor([vectorized_src_sentence_word], dtype=torch.long)
         src_sentence_length = torch.tensor(src_sentence_length, dtype=torch.long)
-        
+
 
         # passing the src sentence to the encoder
         with torch.no_grad():
@@ -96,18 +96,18 @@ class BeamSampler(NMT_Batch_Sampler):
         attention_mask = self.model.create_mask(vectorized_src_sentence_char, self.src_vocab_char.pad_idx)
 
         # initializing the first decoder_h_t to encoder_h_t
-        #decoder_hidden = encoder_h_t
-        decoder_hidden = torch.tanh(self.model.linear_map(encoder_h_t))
+        decoder_hidden = encoder_h_t
+        #decoder_hidden = torch.tanh(self.model.linear_map(encoder_h_t))
 
-        if self.model.decoder.rnn.num_layers > 1:
-            decoder_hidden = decoder_hidden.expand(self.model.decoder.rnn.num_layers,
-                                                decoder_hidden.shape[0],
-                                                decoder_hidden.shape[1]
-                                                ).contiguous()
-            # decoder_hidden shape: [num_layers, batch_size, decoder_hidd_dim]
-        else:
-            decoder_hidden = decoder_hidden.unsqueeze(0)
-            # decoder_hidden shape: [1, batch_size, decoder_hidd_dim]
+        # if self.model.decoder.rnn.num_layers > 1:
+        #     decoder_hidden = decoder_hidden.expand(self.model.decoder.rnn.num_layers,
+        #                                         decoder_hidden.shape[0],
+        #                                         decoder_hidden.shape[1]
+        #                                         ).contiguous()
+        #     # decoder_hidden shape: [num_layers, batch_size, decoder_hidd_dim]
+        # else:
+        #     decoder_hidden = decoder_hidden.unsqueeze(0)
+        #     # decoder_hidden shape: [1, batch_size, decoder_hidd_dim]
 
         # initializing the context vectors to 0
         #context_vectors = torch.zeros(1, self.model.decoder.hidd_dim)
