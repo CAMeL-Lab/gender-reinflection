@@ -20,7 +20,7 @@ export EXPERIMENT_NAME=arin.to.M
 #--use_fasttext_embeddings \
 #--fasttext_embeddings_kv_path /scratch/ba63/gender_bias/data/fasttext_embeddings/OpenSubtitles_fasttext_embeddings_100.kv \
 
-python /home/ba63/gender-bias/main.py \
+python main.py \
  --data_dir $DATA_DIR \
  --analyzer_db_path /scratch/ba63/databases/calima-msa/calima-msa.0.2.2.utf8.db \
  --use_morph_features \

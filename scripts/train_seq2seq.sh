@@ -22,7 +22,7 @@ module purge
 # --morph_features_path /home/ba63/gender-bias/models/saved_models/morph_features_top_1_analyses.json \
 export DATA_DIR=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/
 
-python /home/ba63/gender-bias/main.py \
+python main.py \
  --data_dir $DATA_DIR \
  --vectorizer_path /home/ba63/gender-bias/models/saved_models/vectorizer.json \
  --analyzer_db_path /scratch/ba63/databases/calima-msa/calima-msa.0.2.2.utf8.db \

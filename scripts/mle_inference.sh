@@ -18,7 +18,7 @@ module purge
 export DATA_DIR=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/
 export EXPERIMENT_NAME=arin.to.F
  
-python /home/ba63/gender-bias/mle.py \
+python mle.py \
  --data_dir $DATA_DIR \
  --inference_mode test \
  --ngrams 2 \
