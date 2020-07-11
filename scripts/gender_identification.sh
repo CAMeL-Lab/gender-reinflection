@@ -18,7 +18,7 @@ module purge
 export EXPERIMENT_NAME=arin.to.F
 export DATA_DIR=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/
  
-python /home/ba63/gender-bias/utils/gender_identification.py \
+python utils/gender_identification.py \
  --data_dir $DATA_DIR \
  --inference_mode test \
  --inference_data /home/ba63/gender-bias/models/logs/joint_models_norm/test_do_nothing_baseline.inf.norm
