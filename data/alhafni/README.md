@@ -4,7 +4,7 @@ Here we describe the data we used to train and test our gender reinflection mode
 
 We have 3 types of files: <br/>
 
-1. The actual data files: **D-set-[train|dev|test].[arin|ar][.M|.F]**. These should the same data files that were obtained from the Arabic Parallel Gender Corpus (Habash et al. 2019)
+1. The actual data files: **D-set-[train|dev|test].[arin|ar][.M|.F]**. These should the same data files that were obtained from the [Arabic Parallel Gender Corpus](https://camel.abudhabi.nyu.edu/arabic-parallel-gender-corpus/) ([Habash et al. 2019](https://www.aclweb.org/anthology/W19-3822.pdf))
 2. The labels (B, M, or F) files: **D-set-[train|dev|test].[arin|ar][.M|.F].label**. These should also be the same as the labels obtained from the Arabic Parallel Gender Corpus (Habash et al. 2019)
 3. The gender (M or F) files: **D-set-[train|dev|test].ar.[M|F].gender**. For the masculine data, the gender file will always have **M**, whereas for the feminine data, the gender file will always have **F**. So for example, **D-set-[train|dev|test].ar.M.gender** will always have the **M** label.
 
@@ -37,6 +37,6 @@ After the concatenation, we end up with the following:
 
 ### M<sup>2</sup> Scorer Edits Annotations:
 
-We use the M<sup>2</sup> scorer for our evaluation. However, before we need to create the word-level edits annotations. Lukcily, we can do so by using the [latest](blabla) M<sup>2</sup> scorer release. I modified their code slighlty and I included documentation on how to create the annotations on this [repo](blabla). </br>
+We use the M<sup>2</sup> scorer for our evaluation. However, before we need to create the word-level edits annotations. Lukcily, we can do so by using the [latest](https://github.com/nusnlp/m2scorer) M<sup>2</sup> scorer release. I modified their code slighlty and I included documentation on how to create the annotations on this [repo](https://github.com/balhafni/m2scorer). </br>
 To create the edits annotations for the unnormalized data, you'd need to run: `sbatch edits_annotations/create_annotations.sh` </br>
-For the normalized data, you'd need to run: `sbatch edits_annotations_normalized/create_annotations.sh` </br>
+To create the edits annotations for the normalized data, you'd need to run: `sbatch edits_annotations_normalized/create_annotations.sh` </br>
