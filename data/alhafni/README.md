@@ -23,7 +23,7 @@ All the data described so far should have the same exact splits and examples, as
 
 ### Arabic Parallel Gender Corpus (Alhafni):
 
-To train and test our models, we duplicated Corpus<sub>input</sub> (D-set-[train|dev|test].arin) to represent our source corpus. For the target corpus, we concatenating Corpus<sub>M</sub> (D-set-[train|dev|test].ar.M) and Corpus<sub>F</sub> (D-set-[train|dev|test].ar.F). We did the concatention across all splits defined by Habash et al. 2019. We did the same process for the labels and gender files and we also have a normalized version of the data. </br>
+To train and test our models, we duplicated Corpus<sub>input</sub> (**D-set-[train|dev|test].arin**) to represent our source corpus. For the target corpus, we concatenating Corpus<sub>M</sub> (**D-set-[train|dev|test].ar.M**) and Corpus<sub>F</sub> (**D-set-[train|dev|test].ar.F**). We did the concatention across all splits defined by Habash et al. 2019. We did the same process for the labels and gender files and we also have a normalized version of the data. </br>
 This data can be found in `joint_model/D-set-[train|dev|test].[arin|ar][.M|.F]+D-set-[train|dev|test].[arin|ar][.M|.F][.normalized][.gender|.label]`.
 
 After the concatenation, we end up with the following:
@@ -34,3 +34,9 @@ After the concatenation, we end up with the following:
 | Dev | 2448   |   
 | Test  | 4896   |
 | **Total**| **24476**  |
+
+### M<sup>2</sup> Scorer Edits Annotations:
+
+We use the M<sup>2</sup> scorer for our evaluation. However, before we need to create the word-level edits annotations. Lukcily, we can do so by using the [latest](blabla) M<sup>2</sup> scorer release. I modified their code slighlty and I included documentation on how to create the annotations on this [repo](blabla). </br>
+To create the edits annotations for the unnormalized data, you'd need to run: `sbatch edits_annotations/create_annotations.sh` </br>
+For the normalized data, you'd need to run: `sbatch edits_annotations_normalized/create_annotations.sh` </br>
