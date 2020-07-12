@@ -16,9 +16,9 @@ def gender_id(predictions, gold_data):
         - gold_data (list): list of InputExample objects
     """
 
-    gender_id_stats = {}
+    id_stats = {}
     gold_src_genders = []
-    predicted_src_genders = []
+    pred_src_genders = []
 
     for i, example in enumerate(gold_data):
         src = example.src
@@ -36,47 +36,48 @@ def gender_id(predictions, gold_data):
 
         # getting the predicted src gender
         if src == prediction:
-            predicted_src_gender = trg_gender
+            pred_src_gender = trg_gender
         else:
-            predicted_src_gender = "M" if trg_gender == "F" else "F"
+            pred_src_gender = "M" if trg_gender == "F" else "F"
 
-        if src_gender == predicted_src_gender:
-            gender_id_stats[(src_gender, predicted_src_gender, 'correct')] = 1 + gender_id_stats.get((src_gender, predicted_src_gender, 'correct'), 0)
+        if src_gender == pred_src_gender:
+            id_stats[(src_gender, pred_src_gender, 'correct')] = 1 + \
+            id_stats.get((src_gender, pred_src_gender, 'correct'), 0)
         else:
-            gender_id_stats[(src_gender, predicted_src_gender, 'incorrect')] = 1 + gender_id_stats.get((src_gender, predicted_src_gender, 'incorrect'), 0)
+            id_stats[(src_gender, pred_src_gender, 'incorrect')] = 1 + \
+            id_stats.get((src_gender, pred_src_gender, 'incorrect'), 0)
 
         gold_src_genders.append(src_gender)
-        predicted_src_genders.append(predicted_src_gender)
+        pred_src_genders.append(pred_src_gender)
 
         res = "CORRECT!" if trg == prediction else "INCORRECT!"
-
 
         logger.info(f'src:\t\t\t{src}')
         logger.info(f'trg:\t\t\t{trg}')
         logger.info(f'pred:\t\t\t{prediction}')
         logger.info(f'trg gender:\t\t{trg_gender}')
         logger.info(f'src gender:\t\t{src_gender}')
-        logger.info(f'pred src gender:\t\t{predicted_src_gender}')
+        logger.info(f'pred src gender:\t\t{pred_src_gender}')
         logger.info(f'res:\t\t\t{res}')
         logger.info('\n\n')
 
-    assert len(gold_src_genders) == len(predicted_src_genders)
+    assert len(gold_src_genders) == len(pred_src_genders)
 
-    total_correct = sum([v for k, v in gender_id_stats.items() if k[2] == 'correct'])
-    total_incorrect = sum([v for k, v in gender_id_stats.items() if k[2] == 'incorrect'])
+    total_correct = sum([v for k, v in id_stats.items() if k[2] == 'correct'])
+    total_incorrect = sum([v for k, v in id_stats.items() if k[2] == 'incorrect'])
 
-    correct_gender_id = {(x[0], x[1]): gender_id_stats[x] for x in gender_id_stats if x[2] == 'correct'}
-    incorrect_gender_id = {(x[0], x[1]): gender_id_stats[x] for x in gender_id_stats if x[2] == 'incorrect'}
+    correct_id = {(x[0], x[1]): id_stats[x] for x in id_stats if x[2] == 'correct'}
+    incorrect_id = {(x[0], x[1]): id_stats[x] for x in id_stats if x[2] == 'incorrect'}
 
     logger.info('\n\n\n')
     logger.info('Gender ID Results:')
-    # logger.info(gender_id_stats)
-    for x in gender_id_stats:
+    # logger.info(id_stats)
+    for x in id_stats:
         input_gender = x[0]
         predicted_gender = x[1]
         logger.info(f'{input_gender}->{predicted_gender}')
-        logger.info(f'\tCorrect: {correct_gender_id.get((input_gender, predicted_gender), 0)}'\
-                    f'\tIncorrect: {incorrect_gender_id.get((input_gender, predicted_gender), 0)}')
+        logger.info(f'\tCorrect: {correct_id.get((input_gender, predicted_gender), 0)}'\
+                    f'\tIncorrect: {incorrect_id.get((input_gender, predicted_gender), 0)}')
 
     logger.info(f'--------------------------------')
     logger.info(f'Total Correct: {total_correct}\tTotal Incorrect: {total_incorrect}')
@@ -85,20 +86,20 @@ def gender_id(predictions, gold_data):
     logger.info(f'Metrics:')
 
     accuracy = accuracy_score(y_true=gold_src_genders,
-                              y_pred=predicted_src_genders)
+                              y_pred=pred_src_genders)
 
     f1 = f1_score(y_true=gold_src_genders,
-                  y_pred=predicted_src_genders,
+                  y_pred=pred_src_genders,
                   average=None,
                   labels=["M", "F"])
 
     precision = precision_score(y_true=gold_src_genders,
-                                y_pred=predicted_src_genders,
+                                y_pred=pred_src_genders,
                                 average=None,
                                 labels=["M", "F"])
 
     recall = recall_score(y_true=gold_src_genders,
-                          y_pred=predicted_src_genders,
+                          y_pred=pred_src_genders,
                           average=None,
                           labels=["M", "F"])
 
