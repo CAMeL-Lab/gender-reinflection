@@ -80,7 +80,7 @@ class RawDataset:
         #joint_model/S-set.M.uniq+S-set.F.uniq+S-set.M.uniq+S-set.F.uniq+D-set-train.ar.M+D-set-train.ar.F
         #joint_model/D-set-train.arin+D-set-train.arin
         #joint_model/D-set-train.ar.M+D-set-train.ar.F
-        return self.create_examples(os.path.join(data_dir, 'joint_model/D-set-train.arin+D-set-train.arin'),
+        return self.create_examples(os.path.join(data_dir,'joint_model/D-set-train.arin+D-set-train.arin'),
                                     os.path.join(data_dir, 'joint_model/D-set-train.ar.M+D-set-train.ar.F'))
 
     def get_dev_examples(self, data_dir):
@@ -267,7 +267,8 @@ class MorphFeaturizer:
         for word in word_vocab.token_to_idx:
             if word in morph_features:
                 index = word_vocab.lookup_token(word)
-                morph_embedding_matrix[index] = torch.tensor(morph_features[word], dtype=torch.float64)
+                morph_embedding_matrix[index] = torch.tensor(morph_features[word],
+                                                             dtype=torch.float64)
 
         #morph_embedding_matrix[word_vocab.pad_idx] = torch.zeros(4)
         #morph_embedding_matrix[word_vocab.sos_idx] = torch.randn(4)
