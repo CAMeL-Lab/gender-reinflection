@@ -84,10 +84,23 @@ def gender_id(predictions, gold_data):
     logger.info('\n\n\n')
     logger.info(f'Metrics:')
 
-    accuracy = accuracy_score(y_true=gold_src_genders, y_pred=predicted_src_genders)
-    f1 = f1_score(y_true=gold_src_genders, y_pred=predicted_src_genders, average=None, labels=["M", "F"])
-    precision = precision_score(y_true=gold_src_genders, y_pred=predicted_src_genders, average=None, labels=["M", "F"])
-    recall = recall_score(y_true=gold_src_genders, y_pred=predicted_src_genders, average=None, labels=["M", "F"])
+    accuracy = accuracy_score(y_true=gold_src_genders,
+                              y_pred=predicted_src_genders)
+
+    f1 = f1_score(y_true=gold_src_genders,
+                  y_pred=predicted_src_genders,
+                  average=None,
+                  labels=["M", "F"])
+
+    precision = precision_score(y_true=gold_src_genders,
+                                y_pred=predicted_src_genders,
+                                average=None,
+                                labels=["M", "F"])
+
+    recall = recall_score(y_true=gold_src_genders,
+                          y_pred=predicted_src_genders,
+                          average=None,
+                          labels=["M", "F"])
 
     logger.info(f'Accuracy: {accuracy}')
     logger.info(f'F1_M: {f1[0]}')
