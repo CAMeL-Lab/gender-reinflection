@@ -15,13 +15,10 @@
 #SBATCH -e job.%J.err
 module purge
 
-export EXPERIMENT_NAME=arin.to.F
-export DATA_DIR=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/
+export DATA_DIR=data/alhafni
  
 python utils/gender_identification.py \
  --data_dir $DATA_DIR \
+ --normalized \
  --inference_mode test \
- --inference_data /home/ba63/gender-bias/models/logs/joint_models_norm/test_do_nothing_baseline.inf.norm
-
-
-#dev_preds_256_128_2_layers_w_trg_clip_norm_new_enc_new_no_bias_v_char_10_trg_no_last.inf.norm
+ --inference_data logs/joint_models/test.joint+morph.inf.norm
