@@ -18,26 +18,27 @@ module purge
 eval "$(conda shell.bash hook)"
 conda activate python2
 
-export EXPERIMENT_NAME=arin+arin.to.D-set-test.ar.M+F
+export DATA_SPLIT=dev
+export EXPERIMENT_NAME=arin+arin.to.D-set-$DATA_SPLIT.ar.M+F
+export GOLD_DATA=D-set-$DATA_SPLIT.ar.M+D-set-$DATA_SPLIT.ar.F.normalized
+export EDITS_ANNOTATIONS=D-set-$DATA_SPLIT.$EXPERIMENT_NAME.edits_annotation.normalized
 
-export DEV_SET=D-set-test.ar.M+D-set-test.ar.F
+export SYSTEM_HYP=models/logs/joint_models_norm/dev_preds_256_128_2_layers_w_morph_top_1_analyses_w_trg_clip_norm_new_enc_new_no_bias_v_char_10_trg_no_last.inf.norm
 
-export SYSTEM_HYP=/home/ba63/gender-bias/models/logs/joint_models_norm/test_preds_256_128_2_layers_w_morph_top_1_analyses_w_trg_clip_norm_new_enc_new_no_bias_v_char_10_trg_no_last_test.inf.norm
-#export SYSTEM_HYP=/home/ba63/gender-bias/models/logs/joint_models_norm/test_preds_256_128_2_layers_w_morph_top_1_analyses_w_trg_clip_norm_new_enc_new_no_bias_v_char_10_trg_no_last.inf.norm
+export GOLD_ANNOTATION=data/alhafni/edits_annotations_normalized/$EDITS_ANNOTATIONS
 
-#export SYSTEM_HYP=/home/ba63/gender-bias/models/logs/joint_models_norm/$EXPERIMENT_NAME/mle_baseline_5gram.inf.norm
-
-export GOLD_ANNOTATION=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/edits_annotations_normalized/D-set-test.$EXPERIMENT_NAME.edits_annotation.normalized
-
-export TRG_GOLD_DATA=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/joint_model/$DEV_SET.normalized
+export TRG_GOLD_DATA=data/alhafni/joint_model/$GOLD_DATA
 
 # run M2 Scorer evaluation
+eval "$(conda shell.bash hook)"
+conda activate python2
+
 m2_eval=$(python /home/ba63/m2scorer/scripts/m2scorer.py $SYSTEM_HYP $GOLD_ANNOTATION)
 
 conda activate python3
 
 # run accuracy evaluation
-accuracy=$(python /home/ba63/gender-bias/models/metrics.py --trg_directory $TRG_GOLD_DATA --pred_directory $SYSTEM_HYP)
+accuracy=$(python utils/metrics.py --trg_directory $TRG_GOLD_DATA --pred_directory $SYSTEM_HYP)
 
 # run BLEU evaluation
 bleu=$(cat $SYSTEM_HYP | sacrebleu $TRG_GOLD_DATA --force --short)
