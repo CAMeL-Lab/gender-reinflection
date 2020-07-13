@@ -13,14 +13,7 @@
 nvidia-smi
 module purge
 
-# export EXPERIMENT_NAME=arin.to.F
-# old learning rate = 5e-4
-# --embed_trg_gender \
-# --trg_gender_embedding_dim 10 \
-
-# --use_morph_features \
-# --morph_features_path /home/ba63/gender-bias/models/saved_models/morph_features_top_1_analyses.json \
-export DATA_DIR=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/
+export DATA_DIR=data/alhafni
 
 python main.py \
  --data_dir $DATA_DIR \
@@ -43,4 +36,4 @@ python main.py \
  --dropout 0.2 \
  --clip_grad 1.0 \
  --visualize_loss \
- --model_path /home/ba63/gender-bias/models/saved_models/joint_models/char_level_256_128_2_layers_w_morph_top_1_analyses_w_trg_clip_norm_new_enc_new_no_bias_v_char_10_trg_no_last_test.pt 
+ --model_path saved_models/joint_models/joint+morph.pt
