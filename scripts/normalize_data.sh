@@ -17,9 +17,8 @@
 module purge
 
 export EXPERIMENT_NAME=arin.to.F
-export DATA_DIR=/home/ba63/gender-bias/models/logs/joint_models_norm
-#export DATA_DIR=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/google/
-for f in $DATA_DIR/test_preds_256_128_2_layers_w_morph_top_1_analyses_w_trg_clip_norm_new_enc_new_no_bias_v_char_10_trg_no_last_test.inf
+export DATA_DIR=logs/joint_models
+for f in $DATA_DIR/*.inf
 do
-    python normalize.py --input_file $f --output_file $f.norm
+    python utils/normalize.py --input_file $f --output_file $f.norm
 done
