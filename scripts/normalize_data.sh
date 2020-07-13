@@ -16,7 +16,7 @@
 
 module purge
 
-export DATA_DIR=logs/joint_models
+export DATA_DIR=logs/reinflection/joint_models
 for f in $DATA_DIR/*.inf
 do
     python utils/normalize.py --input_file $f --output_file $f.norm
