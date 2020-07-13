@@ -21,4 +21,4 @@ python utils/gender_identification.py \
  --data_dir $DATA_DIR \
  --normalized \
  --inference_mode test \
- --inference_data logs/joint_models/test.joint+morph.inf.norm
+ --inference_data logs/reinflection/joint_models/test.joint+morph.inf.norm
