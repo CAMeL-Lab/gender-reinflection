@@ -30,10 +30,10 @@ class InputExample:
 
 class RawDataset:
     """Encapsulates the raw examples in InputExample objects"""
-    def __init__(self, data_dir):
-        self.train_examples = self.get_train_examples(data_dir)
-        self.dev_examples = self.get_dev_examples(data_dir)
-        self.test_examples = self.get_test_examples(data_dir)
+    def __init__(self, data_dir, normalized=False):
+        self.train_examples = self.get_train_examples(data_dir, normalized=normalized)
+        self.dev_examples = self.get_dev_examples(data_dir, normalized=normalized)
+        self.test_examples = self.get_test_examples(data_dir, normalized=normalized)
 
     def create_examples(self, src_path, trg_path):
 
@@ -74,24 +74,37 @@ class RawDataset:
         with open(data_dir, encoding='utf8') as f:
             return f.readlines()
 
-    def get_train_examples(self, data_dir):
+    def get_train_examples(self, data_dir, normalized=False):
         """Reads the train examples of the dataset"""
         #joint_model/S-set.M.uniq+S-set.M.uniq+S-set.F.uniq+S-set.F.uniq+D-set-train.arin+D-set-train.arin
         #joint_model/S-set.M.uniq+S-set.F.uniq+S-set.M.uniq+S-set.F.uniq+D-set-train.ar.M+D-set-train.ar.F
         #joint_model/D-set-train.arin+D-set-train.arin
         #joint_model/D-set-train.ar.M+D-set-train.ar.F
-        return self.create_examples(os.path.join(data_dir,'joint_model/D-set-train.arin+D-set-train.arin'),
-                                    os.path.join(data_dir, 'joint_model/D-set-train.ar.M+D-set-train.ar.F'))
 
-    def get_dev_examples(self, data_dir):
+        if normalized:
+            return self.create_examples(os.path.join(data_dir, 'joint_model/D-set-train.arin+D-set-train.arin.normalized'),
+                                        os.path.join(data_dir, 'joint_model/D-set-train.ar.M+D-set-train.ar.F.normalized'))
+        else:
+            return self.create_examples(os.path.join(data_dir, 'joint_model/D-set-train.arin+D-set-train.arin'),
+                                        os.path.join(data_dir, 'joint_model/D-set-train.ar.M+D-set-train.ar.F'))
+
+    def get_dev_examples(self, data_dir, normalized=False):
         """Reads the dev examples of the dataset"""
-        return self.create_examples(os.path.join(data_dir, 'joint_model/D-set-dev.arin+D-set-dev.arin.normalized'),
-                                    os.path.join(data_dir, 'joint_model/D-set-dev.ar.M+D-set-dev.ar.F.normalized'))
+        if normalized:
+            return self.create_examples(os.path.join(data_dir, 'joint_model/D-set-dev.arin+D-set-dev.arin.normalized'),
+                                        os.path.join(data_dir, 'joint_model/D-set-dev.ar.M+D-set-dev.ar.F.normalized'))
+        else:
+            return self.create_examples(os.path.join(data_dir, 'joint_model/D-set-dev.arin+D-set-dev.arin'),
+                                        os.path.join(data_dir, 'joint_model/D-set-dev.ar.M+D-set-dev.ar.F'))
 
-    def get_test_examples(self, data_dir):
+    def get_test_examples(self, data_dir, normalized=False):
         """Reads the test examples of the dataset"""
-        return self.create_examples(os.path.join(data_dir, 'joint_model/D-set-test.arin+D-set-test.arin.normalized'),
-                                    os.path.join(data_dir, 'joint_model/D-set-test.ar.M+D-set-test.ar.F.normalized'))
+        if normalized:
+            return self.create_examples(os.path.join(data_dir, 'joint_model/D-set-test.arin+D-set-test.arin.normalized'),
+                                        os.path.join(data_dir, 'joint_model/D-set-test.ar.M+D-set-test.ar.F.normalized'))
+        else:
+            return self.create_examples(os.path.join(data_dir, 'joint_model/D-set-test.arin+D-set-test.arin'),
+                                        os.path.join(data_dir, 'joint_model/D-set-test.ar.M+D-set-test.ar.F'))
 
 class Vocabulary:
     """Base vocabulary class"""
