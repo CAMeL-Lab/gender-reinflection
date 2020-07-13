@@ -15,11 +15,10 @@
 #SBATCH -e job.%J.err
 module purge
 
-export DATA_DIR=/scratch/ba63/gender_bias/data/christine_2019/Arabic-parallel-gender-corpus/
-export EXPERIMENT_NAME=arin.to.F
- 
+export DATA_DIR=data/alhafni
+
 python mle.py \
  --data_dir $DATA_DIR \
  --inference_mode test \
  --ngrams 2 \
- --preds_dir /home/ba63/gender-bias/models/logs/joint_models/test_mle_baseline_2gram_test
+ --preds_dir logs/reinflection/mle/test.mle_baseline_2gram
