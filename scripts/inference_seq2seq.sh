@@ -29,4 +29,4 @@ python main.py \
  --model_path saved_models/joint_models/joint+morph.pt \
  --do_inference \
  --inference_mode dev \
- --preds_dir logs/reinflection/joint_models/dev.joint+morph_blabla
+ --preds_dir logs/reinflection/joint_models/dev.joint+morph
