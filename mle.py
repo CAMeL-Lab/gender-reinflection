@@ -45,7 +45,7 @@ class MLE:
         """
 
         model = defaultdict(lambda: defaultdict(lambda: 0))
-        context_counts = dict()
+        context = dict()
         for i, ex in enumerate(examples):
 
             src = ex.src
@@ -62,12 +62,12 @@ class MLE:
                     # counts of (t_w, s_w, t_g)
                     model[(src_ngrams[j], trg_g)][trg_w] += 1
                     # counts of (s_w, t_g)
-                    context_counts[(src_ngrams[j], trg_g)] = 1 + context_counts.get((src_ngrams[j], trg_g), 0)
+                    context[(src_ngrams[j], trg_g)] = 1 + context.get((src_ngrams[j], trg_g), 0)
 
         # turning the counts into probs
         for sw, trg_g in model:
             for trg_w in model[(sw, trg_g)]:
-                model[(sw, trg_g)][trg_w] = float(model[(sw, trg_g)][trg_w]) / context_counts[(sw, trg_g)]
+                model[(sw, trg_g)][trg_w] /= float(context[(sw, trg_g)])
 
         return cls(model, ngrams)
 
@@ -158,7 +158,8 @@ def inference(model, data_examples, args):
     logger.info('Results:')
     for x in correct_inferneces:
         logger.info(f'{x[0]}->{x[1]}')
-        logger.info(f'\tCorrect: {correct_inferneces.get(x, 0)}\tIncorrect: {incorrect_inferneces.get(x, 0)}')
+        logger.info(f'\tCorrect: {correct_inferneces.get(x, 0)}'\
+                     '\tIncorrect: {incorrect_inferneces.get(x, 0)}')
 
     logger.info(f'--------------------------------')
     logger.info(f'Total Correct: {total_correct}\tTotal Incorrect: {total_incorrect}')
@@ -199,7 +200,8 @@ def main():
     raw_data = RawDataset(args.data_dir)
 
     # building the MLE model based on the training examples
-    mle_model = MLE.build_model(raw_data.train_examples, ngrams=args.ngrams)
+    mle_model = MLE.build_model(raw_data.train_examples,
+                                ngrams=args.ngrams)
 
     if args.inference_mode == 'dev':
         inference(mle_model, raw_data.dev_examples, args)
