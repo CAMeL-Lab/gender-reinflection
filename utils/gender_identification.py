@@ -117,6 +117,12 @@ def main():
         help="The input data dir. Should contain the src and trg files."
     )
     parser.add_argument(
+        "--normalized",
+        action="store_true",
+        required=True,
+        help="Whether or not to read the normalized data."
+    )
+    parser.add_argument(
         "--inference_mode",
         type=str,
         default="dev",
@@ -131,7 +137,7 @@ def main():
     )
 
     args = parser.parse_args()
-    gold_data = RawDataset(args.data_dir)
+    gold_data = RawDataset(args.data_dir, normalized=args.normalized)
     inference_data = read_lines(args.inference_data)
 
     if args.inference_mode == 'dev':
