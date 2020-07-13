@@ -16,7 +16,6 @@
 
 module purge
 
-export EXPERIMENT_NAME=arin.to.F
 export DATA_DIR=logs/joint_models
 for f in $DATA_DIR/*.inf
 do
