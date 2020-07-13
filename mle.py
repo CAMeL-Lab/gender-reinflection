@@ -159,7 +159,7 @@ def inference(model, data_examples, args):
     for x in correct_inferneces:
         logger.info(f'{x[0]}->{x[1]}')
         logger.info(f'\tCorrect: {correct_inferneces.get(x, 0)}'\
-                     '\tIncorrect: {incorrect_inferneces.get(x, 0)}')
+                    f'\tIncorrect: {incorrect_inferneces.get(x, 0)}')
 
     logger.info(f'--------------------------------')
     logger.info(f'Total Correct: {total_correct}\tTotal Incorrect: {total_incorrect}')
