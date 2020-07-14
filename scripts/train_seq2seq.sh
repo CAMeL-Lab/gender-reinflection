@@ -17,12 +17,12 @@ export DATA_DIR=data/alhafni
 
 python main.py \
  --data_dir $DATA_DIR \
- --vectorizer_path /home/ba63/gender-bias/models/saved_models/vectorizer.json \
+ --vectorizer_path saved_models/vectorizer.json \
  --analyzer_db_path /scratch/ba63/databases/calima-msa/calima-msa.0.2.2.utf8.db \
  --embed_trg_gender \
  --trg_gender_embedding_dim 10 \
  --use_morph_features \
- --morph_features_path /home/ba63/gender-bias/models/saved_models/morph_features_top_1_analyses.json \
+ --morph_features_path saved_models/morph_features_top_1_analyses.json \
  --cache_files \
  --num_train_epochs 50 \
  --embedding_dim 128 \
