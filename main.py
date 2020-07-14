@@ -231,7 +231,7 @@ class MT_Dataset(Dataset):
 
     def save_vectorizer(self, vec_path):
         with open(vec_path, 'w') as f:
-            return json.dump(self.vectorizer.to_serializable(), f)
+            return json.dump(self.vectorizer.to_serializable(), f, ensure_ascii=False)
 
     def set_split(self, split):
         self.split = split
