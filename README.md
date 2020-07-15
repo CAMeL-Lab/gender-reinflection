@@ -19,10 +19,26 @@ pip install .
 
 To train the best joint reinflection and identification (`joint+morph`) model we describe in our paper, you need to run `sbatch scripts/train_seq2seq.sh`. Training the model should take around 3 hours on a single GPU, although this may vary based on the GPU you're using. Once the training is done, the trained pytorch model will be saved in `saved_models/`.
 
+## Inference:
+
+To get the gender reinflected sentences based on the seq2seq model, you would need to run `sbatch scripts/inference_seq2seq.sh`. </br>
+To get the gender reinflected sentences based on the bigram MLE model, you would need to run `sbatch scripts/mle_inference.sh`. </br></br>
+
+Refer to [logs/reinflection](https://github.com/balhafni/gender-bias/tree/master/logs/reinflection) to get the reinflected sentences for all the experiments we report on in our paper.
+
 ## Evaluation:
 
+We use the M<sup>2</sup> scorer and SacreBLEU in our evaluation. To run the evaluation, for the MLE, do nothing, and joint models we report on in the paper, you would need to run `sbatch scripts/run_eval_norm_joint.sh`. Make sure to change the path of inference data you want to evaluate on (refer to `SYSTEM_HYP` in ` scripts/run_eval_norm_joint.sh`). </br>
+To run the evaluation for the disjoint models, you would need to run `sbatch scripts/run_eval_norm_disjoint.sh`. To get the results we have in the paper for this experiment, you would need to run this script twice (over the feminine and masculine data). To do so, you would just need to change the `EXPERIMENT_NAME` in `scripts/run_eval_norm_disjoint.sh`. Change the `EXPERIMENT_NAME` to `arin.to.F` to run the evaluation over the feminie data and to `arin.to.M` to run the evaluation over the masculine data.  We report the average of the two evaluations in the paper for this expierment. </br></br>
 
 
 ## Gender Identification:
 
+To get the results of gender identification we report for our experiments in the paper, you would need to run `sbatch scripts/gender_identification.sh`. Make sure to change the inference data path based on the experiment you're running. Throughout all experiments, we report the average F<sub>1</sub> score over the masculine and feminine data. </br></br>
+Refer to [logs/gender_id](https://github.com/balhafni/gender-bias/tree/master/logs/gender_id) to get the gender id logs based on how we defined gender identification in our paper.
+
 ## Error Analysis:
+
+We also conduct a simple error analysis to indicate which words changed during inference. This helped us in conducting a more thourough manual error analysis which we reported in the paper. We did the error analysis on the results of our best model (`joint+morph`) on the dev set on the feminine and masculine data separately. To run the error analysis script, you would need to run `sbatch scripts/error_analysis`. Make sure to change the `EXPERIMENT_NAME` to `arin.to.F` to run the error analysis over the feminie dev set results and to `arin.to.M` to run the error analysis over the masuline dev set.  </br></br>
+
+Refer to [logs/error_analysis](https://github.com/balhafni/gender-bias/tree/master/logs/error_analysis) to get the error analysis logs.
