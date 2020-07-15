@@ -28,7 +28,7 @@ Refer to [logs/reinflection](https://github.com/balhafni/gender-bias/tree/master
 
 ## Evaluation:
 
-We use the M<sup>2</sup> scorer and SacreBLEU in our evaluation. To run the evaluation, for the MLE, do nothing, and joint models we report on in the paper, you would need to run `sbatch scripts/run_eval_norm_joint.sh`. Make sure to change the path of inference data you want to evaluate on (refer to `SYSTEM_HYP` in ` scripts/run_eval_norm_joint.sh`). </br>
+We use the M<sup>2</sup> scorer and SacreBLEU in our evaluation. To run the evaluation, for the MLE, do nothing, and joint models we report on in the paper, you would need to run `sbatch scripts/run_eval_norm_joint.sh`. Make sure to change the path of inference data you want to evaluate on (refer to `SYSTEM_HYP` in ` scripts/run_eval_norm_joint.sh`). </br></br>
 To run the evaluation for the disjoint models, you would need to run `sbatch scripts/run_eval_norm_disjoint.sh`. To get the results we have in the paper for this experiment, you would need to run this script twice (over the feminine and masculine data). To do so, you would just need to change the `EXPERIMENT_NAME` in `scripts/run_eval_norm_disjoint.sh`. Change the `EXPERIMENT_NAME` to `arin.to.F` to run the evaluation over the feminie data and to `arin.to.M` to run the evaluation over the masculine data.  We report the average of the two evaluations in the paper for this expierment. </br></br>
 
 
