@@ -21,7 +21,7 @@ To train the best joint reinflection and identification (`joint+morph`) model we
 
 ## Inference:
 
-To get the gender reinflected sentences based on the seq2seq model, you would need to run `sbatch scripts/inference_seq2seq.sh`. </br>
+To get the gender reinflected sentences based on the seq2seq model, you would need to run `sbatch scripts/inference_seq2seq.sh`. The inference script will produce 3 files: .beam (beam search with beam size=10), .inf (greedy search), and .beam_greedy (beam search with beam size=1, i.e. greedy search).</br>
 To get the gender reinflected sentences based on the bigram MLE model, you would need to run `sbatch scripts/mle_inference.sh`. </br></br>
 
 Refer to [logs/reinflection](https://github.com/balhafni/gender-bias/tree/master/logs/reinflection) to get the reinflected sentences for all the experiments we report on in our paper.
