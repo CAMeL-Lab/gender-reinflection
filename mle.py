@@ -90,8 +90,10 @@ def reinflect(model, src_sentence, trg_g, ngrams=1):
     Reinflects a sentence based on the mle model.
     At each time step, the model will pick the word with maximum prob.
     Args:
-    - src_sentence (str): the source sentence
-    - trg_g (str): the target gender
+        - src_sentence (str): the source sentence
+        - trg_g (str): the target gender
+    Returns:
+        - gender reinflected sentence (str)
     """
     src = src_sentence.split(' ')
     src_ngrams = build_ngrams(src, ngrams=ngrams, pad_left=True)
