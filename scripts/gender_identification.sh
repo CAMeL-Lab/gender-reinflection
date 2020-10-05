@@ -17,6 +17,16 @@ module purge
 
 export DATA_DIR=data/alhafni
  
+# To run the gender ID evaluation on the joint model's output,
+# you have to provide the output of the joint model's at
+# logs/reinflection/joint_models/[test|dev].joint+morph.inf.norm
+
+# To run the gender ID evaluation on the disjoint model's output,
+# you have to provide the output of the disjoint model's at
+# logs/reinflection/disjoint_models/dev.disjoint+morph.inf.norm
+# dev.disjoint+morph.inf.norm is the concatenation of the masculine
+# feminine disjoint systems outputs on the dev set
+
 python utils/gender_identification.py \
  --data_dir $DATA_DIR \
  --normalized \
