@@ -19,21 +19,21 @@ eval "$(conda shell.bash hook)"
 conda activate python2
 
 export DATA_SPLIT=dev
-export EXPERIMENT_NAME=arin.to.F
-export GOLD_DATA=D-set-$DATA_SPLIT.ar.M.normalized
+export EXPERIMENT_NAME=arin+arin.to.D-set-$DATA_SPLIT.ar.M+F
+export GOLD_DATA=D-set-$DATA_SPLIT.ar.M+D-set-$DATA_SPLIT.ar.F.normalized
 export EDITS_ANNOTATIONS=D-set-$DATA_SPLIT.$EXPERIMENT_NAME.edits_annotation.normalized
 
-export SYSTEM_HYP=logs/reinflection/disjoint_models/$EXPERIMENT_NAME/$DATA_SPLIT.disjoint+morph.inf.norm
+export SYSTEM_HYP=logs/reinflection/disjoint_models/$DATA_SPLIT.disjoint+morph.inf.norm
 
 export GOLD_ANNOTATION=data/alhafni/edits_annotations_normalized/$EDITS_ANNOTATIONS
 
-export TRG_GOLD_DATA=data/alhafni/$GOLD_DATA
+export TRG_GOLD_DATA=data/alhafni/joint_model/$GOLD_DATA
 
 # run M2 Scorer evaluation
 eval "$(conda shell.bash hook)"
 conda activate python2
 
-m2_eval=$(python /home/ba63/m2scorer/scripts/m2scorer.py $SYSTEM_HYP $GOLD_ANNOTATION)
+m2_eval=$(python /Users/ba63/Desktop/repos/m2scorer/scripts/m2scorer.py $SYSTEM_HYP $GOLD_ANNOTATION)
 
 conda activate python3
 
