@@ -33,7 +33,7 @@ export TRG_GOLD_DATA=data/alhafni/joint_model/$GOLD_DATA
 eval "$(conda shell.bash hook)"
 conda activate python2
 
-m2_eval=$(python /Users/ba63/Desktop/repos/m2scorer/scripts/m2scorer.py $SYSTEM_HYP $GOLD_ANNOTATION)
+m2_eval=$(python m2scorer/scripts/m2scorer.py $SYSTEM_HYP $GOLD_ANNOTATION)
 
 conda activate python3
 
