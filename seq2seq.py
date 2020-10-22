@@ -3,15 +3,8 @@ import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import numpy as np
 import torch.nn.functional as F
-from attention import AdditiveAttention, DotProductAttention
+from attention import AdditiveAttention
 
-def GlorotLinear(input_dim, output_dim, bias=True):
-    """Returns a Glorot initialized linear layer for optimal gradient flow"""
-    linear = nn.Linear(input_dim, output_dim, bias=bias)
-    nn.init.xavier_uniform_(linear.weight)
-    if bias:
-        nn.init.constant_(linear.bias, 0)
-    return linear
 
 class Encoder(nn.Module):
     """Encoder bi-GRU"""
@@ -53,16 +46,11 @@ class Encoder(nn.Module):
                           dropout=dropout if num_layers > 1 else 0.0)
 
         self.linear_map = nn.Linear(encoder_hidd_dim * 2, decoder_hidd_dim)
-        #self.linear_map = GlorotLinear(encoder_hidd_dim * 2, decoder_hidd_dim)
-
-        #self.dropout_layer = nn.Dropout(dropout)
 
     def forward(self, char_src_seqs, word_src_seqs, src_seqs_lengths):
 
         embedded_seqs = self.char_embedding_layer(char_src_seqs)
         # embedded_seqs shape: [batch_size, max_src_seq_len, char_embed_dim]
-
-        # embedded_seqs = self.dropout_layer(embedded_seqs)
 
         # Add morph embeddings to the char embeddings if needed
         if self.morph_embedding_layer is not None:
@@ -85,10 +73,6 @@ class Encoder(nn.Module):
 
         output, hidd = self.rnn(packed_embedded_seqs)
         # hidd shape: [num_layers * num_dirs, batch_size, encoder_hidd_dim]
-
-        # getting the last forward and backward hidden states
-        # hidd = torch.cat((hidd[-2, :, :], hidd[-1, :, :]), dim=1)
-        # hidd shape: [batch_size, num dirs * encoder_hidd_dim]
 
         # concatenating the forward and backward vectors for each layer
         hidd = torch.cat([hidd[0:hidd.size(0):2], hidd[1:hidd.size(0):2]], dim=2)
@@ -153,13 +137,10 @@ class Decoder(nn.Module):
                                               + decoder_hidd_dim * num_layers
                                               + gender_embed_dim + char_embed_dim, output_dim)
 
-        #self.classification_layer = GlorotLinear(encoder_hidd_dim * 2 + decoder_hidd_dim * num_layers + gender_embed_dim,
-        #                                         output_dim
-        #                                         )
-
         self.dropout_layer = nn.Dropout(dropout)
 
-    def forward(self, trg_seqs, encoder_outputs, decoder_h_t, context_vectors, attention_mask, trg_gender=None):
+    def forward(self, trg_seqs, encoder_outputs, decoder_h_t, context_vectors,
+                attention_mask, trg_gender=None):
         # trg_seqs shape: [batch_size]
         batch_size = trg_seqs.shape[0]
 
@@ -169,8 +150,6 @@ class Decoder(nn.Module):
         # Step 1: embedding the target seqs
         embedded_seqs = self.char_embedding_layer(trg_seqs)
         # embedded_seqs shape: [batch_size, 1, embed_dim]
-
-        #embedded_seqs = self.dropout_layer(embedded_seqs)
 
         # context_vectors shape: [batch_size, encoder_hidd_dim * 2]
         # changing shape to: [batch_size, 1, encoder_hidd_dim * 2]
@@ -190,11 +169,6 @@ class Decoder(nn.Module):
         context_vectors, atten_scores = self.attention(keys=encoder_outputs,
                                                        query=decoder_h_t,
                                                        mask=attention_mask)
-
-        #context_vectors, atten_scores = DotProductAttention(keys=encoder_outputs,
-        #                                                    query=decoder_h_t,
-        #                                                    mask=attention_mask
-        #                                                    )
 
         # Step 4: get the prediction vector
 
@@ -277,7 +251,8 @@ class Seq2Seq(nn.Module):
         mask = (src_seqs != src_padding_idx)
         return mask
 
-    def forward(self, char_src_seqs, word_src_seqs, src_seqs_lengths, trg_seqs, trg_gender=None, teacher_forcing_prob=0.3):
+    def forward(self, char_src_seqs, word_src_seqs, src_seqs_lengths, trg_seqs,
+                trg_gender=None, teacher_forcing_prob=0.3):
         # trg_seqs shape: [batch_size, trg_seqs_length]
         # reshaping to: [trg_seqs_length, batch_size]
         trg_seqs = trg_seqs.permute(1, 0)
