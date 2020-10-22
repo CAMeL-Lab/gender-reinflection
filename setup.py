@@ -6,9 +6,8 @@ CLASSIFIERS = [
     'Intended Audience :: Science/Research',
     'License :: OSI Approved :: MIT License',
     'Operating System :: OS Independent',
-    'Programming Language :: Python :: 3.7',
-    'Topic :: Scientific/Engineering :: Deep Learning',
-    'Topic :: Grammatical Gender Reinflection :: Linguistics',
+    'Programming Language :: Python :: 3.6',
+    'Topic :: Scientific/Engineering :: Artificial Intelligence'
 ]
 
 DESCRIPTION = ('Code for the '
