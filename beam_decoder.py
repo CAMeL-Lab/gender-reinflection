@@ -9,11 +9,12 @@ class BeamSearchNode:
     """A class to represent the node during the beam search"""
     def __init__(self, hidd_state, prev_node, word_idx, log_prob, length):
         """
-        :param hidd_state: decoder hidden state
-        :param prev_node: the previous node (parent)
-        :param word_idx: the word index
-        :param log_prob: the log probability
-        :param length: length of decoded sentence
+        Args:
+            hidd_state: decoder hidden state
+            prev_node: the previous node (parent)
+            word_idx: the word index
+            log_prob: the log probability
+            length: length of decoded sentence
         """
         self.h = hidd_state
         self.prevNode = prev_node
@@ -50,11 +51,14 @@ class BeamSampler(NMT_Batch_Sampler):
 
     def beam_decode(self, sentence, trg_gender=None, topk=3, beam_width=5, max_len=512):
         """
-        :param sentence: the source sentence
-        :param topk: number of sentences to generate from beam search. Defaults to 3
-        :param beam_width: the beam size. If 1, then we do greed search. Defaults to 5
-        :param max_len: the maximum length of the decoded sentence. Defaults to 512
-        :returns: decoded_sentences: list of tuples. Each tuple is (log_prob, decoded_sentence)
+        Args:
+            sentence: the source sentence
+            topk: number of sentences to generate from beam search. Defaults to 3
+            beam_width: the beam size. If 1, then we do greed search. Defaults to 5
+            max_len: the maximum length of the decoded sentence. Defaults to 512
+
+        Returns:
+            decoded_sentences: list of tuples. Each tuple is (log_prob, decoded_sentence)
         """
 
         # vectorizing the src sentence on the char level and word level
