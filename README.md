@@ -1,5 +1,5 @@
-# Linguistically Enhanced Neural Models for Joint Gender Identification and Reinflection:
-This repo contains code to reproduce the results in our paper [Linguistically Enhanced Neural Models for Joint Gender Identification and Reinflection](blabla)
+# Gender-Aware Reinflection using Linguistically Enhanced Neural Models:
+This repo contains code to reproduce the results in our paper [Gender-Aware Reinflection using Linguistically Enhanced Neural Models](blabla)
 
 ## Requirements:
 The code was written for python>=3.6 and pytorch 1.3, although newer versions of pytorch might work just fine. You will need a few additional packages. Here's how you can set up the environment using conda (assuming you have conda installed):
