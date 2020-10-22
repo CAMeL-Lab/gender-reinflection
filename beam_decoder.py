@@ -99,19 +99,6 @@ class BeamSampler(NMT_Batch_Sampler):
         decoder_hidden = encoder_h_t
         #decoder_hidden = torch.tanh(self.model.linear_map(encoder_h_t))
 
-        # if self.model.decoder.rnn.num_layers > 1:
-        #     decoder_hidden = decoder_hidden.expand(self.model.decoder.rnn.num_layers,
-        #                                         decoder_hidden.shape[0],
-        #                                         decoder_hidden.shape[1]
-        #                                         ).contiguous()
-        #     # decoder_hidden shape: [num_layers, batch_size, decoder_hidd_dim]
-        # else:
-        #     decoder_hidden = decoder_hidden.unsqueeze(0)
-        #     # decoder_hidden shape: [1, batch_size, decoder_hidd_dim]
-
-        # initializing the context vectors to 0
-        #context_vectors = torch.zeros(1, self.model.decoder.hidd_dim)
-
         context_vectors = torch.zeros(1, self.model.encoder.rnn.hidden_size * 2)
 
         # if beam_width == 1, then we're doing greedy decoding
@@ -222,9 +209,6 @@ class BeamSampler(NMT_Batch_Sampler):
             decoded_sentence = decoded_sentence[::-1]
             decoded_sentences.append((score, decoded_sentence))
 
-        # print(decoded_sentences)
-#         decoded_batch.append(decoded_sentences)
         str_decoded_sentence = self.get_str_sentence(decoded_sentences[0][1], self.trg_vocab_char)
         return str_decoded_sentence
-#         print(decoded_batch[0])
-#         return decoded_batch
+
