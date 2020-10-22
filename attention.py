@@ -2,13 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-def GlorotLinear(input_dim, output_dim, bias=True):
-    """Returns a Glorot initialized linear layer for optimal gradient flow"""
-    linear = nn.Linear(input_dim, output_dim, bias=bias)
-    nn.init.xavier_uniform_(linear.weight)
-    if bias:
-        nn.init.constant_(linear.bias, 0)
-    return linear
 
 class AdditiveAttention(nn.Module):
     """Attention mechanism as a MLP
