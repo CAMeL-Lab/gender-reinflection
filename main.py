@@ -306,7 +306,8 @@ def set_seed(seed, cuda):
     if cuda:
         torch.cuda.manual_seed(seed)
 
-def train(model, dataloader, optimizer, criterion, device='cpu', teacher_forcing_prob=1, clip_grad=1.0):
+def train(model, dataloader, optimizer, criterion, device='cpu',
+          teacher_forcing_prob=1, clip_grad=1.0):
     model.train()
     epoch_loss = 0
     for batch in dataloader:
@@ -378,7 +379,6 @@ def evaluate(model, dataloader, criterion, device='cpu', teacher_forcing_prob=0)
 
 def inference(sampler, beam_sampler, dataloader, args):
     output_inf_file = open(args.preds_dir + '.inf', mode='w', encoding='utf8')
-    #output_file = open(preds_dir, mode='w', encoding='utf8')
     output_beam_g = open(args.preds_dir + '.beam_greedy', mode='w', encoding='utf8')
     output_beam = open(args.preds_dir + '.beam', mode='w', encoding='utf8')
 
@@ -419,8 +419,6 @@ def inference(sampler, beam_sampler, dataloader, args):
         else:
             beam_stats[(src_label, trg_label, 'incorrect')] = 1 + beam_stats.get((src_label, trg_label, 'incorrect'), 0)
 
-        #output_file.write(pred)
-        #output_file.write('\n')
         output_inf_file.write(translated)
         output_inf_file.write('\n')
         output_beam_g.write(beam_trans_1)
@@ -436,8 +434,6 @@ def inference(sampler, beam_sampler, dataloader, args):
         logger.info(f'trg label:\t\t{trg_label}')
         if trg_gender:
             logger.info(f'trg gender:\t\t{trg_gender}')
-        #logger.info(f'src gender:\t{src_label}')
-        #logger.info(f'trg gender:\t{trg_label}')
         logger.info(f'res:\t\t\t{correct}')
         logger.info(f'beam==greedy?:\t\t{different_10}')
         logger.info('\n\n')
@@ -499,7 +495,6 @@ def get_morph_features(args, data, word_vocab):
 def load_fasttext_embeddings(args, vocab):
     set_seed(args.seed, args.use_cuda)
     fasttext_wv = KeyedVectors.load(args.fasttext_embeddings_kv_path, mmap='r')
-    #space_embedding = torch.randn(fasttext_wv.vector_size, dtype=torch.float32)
     pretrained_embeddings = torch.zeros((len(vocab), fasttext_wv.vector_size), dtype=torch.float32)
     oov = 0
     unks = list()
@@ -507,17 +502,9 @@ def load_fasttext_embeddings(args, vocab):
         if word in fasttext_wv.vocab:
             pretrained_embeddings[index] = torch.tensor(fasttext_wv[word], dtype=torch.float32)
         else:
-            #pretrained_embeddings[index] = space_embedding
             oov += 1
             unks.append(word)
 
-    # remapping the embeddings of <s>, <pad>, ' ', and <unk> to zero embeddings
-    #pretrained_embeddings[vocab.sos_idx] = torch.zeros(fasttext_wv.vector_size, dtype=torch.float32)
-    #pretrained_embeddings[vocab.pad_idx] = torch.zeros(fasttext_wv.vector_size, dtype=torch.float32)
-    #pretrained_embeddings[vocab.unk_idx] = torch.zeros(fasttext_wv.vector_size, dtype=torch.float32)
-    #pretrained_embeddings[vocab.token_to_idx[' ']] = torch.zeros(fasttext_wv.vector_size, dtype=torch.float32) * 1e-3
-
-    # pretrained_embeddings = torch.tensor(pretrained_embeddings, dtype=torch.float32)
     print(f'# Vocab not in the Embeddings: {oov}', flush=True)
     print(unks, flush=True)
     return pretrained_embeddings
@@ -833,7 +820,6 @@ def main():
         set_seed(args.seed, args.use_cuda)
         model.load_state_dict(torch.load(args.model_path))
         model.eval()
-        #device = torch.device('cpu')
         model = model.to(device)
         dataset.set_split(args.inference_mode)
         dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=collator)
@@ -858,3 +844,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
