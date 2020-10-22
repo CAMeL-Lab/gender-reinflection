@@ -4,13 +4,12 @@ This repo contains code to reproduce the results in our paper [Gender-Aware Rein
 ## Requirements:
 The code was written for python>=3.6 and pytorch 1.3, although newer versions of pytorch might work just fine. You will need a few additional packages. Here's how you can set up the environment using conda (assuming you have conda installed):
 
-TODO: create the setup.py file
-```
+```bash
 git clone https://github.com/balhafni/gender-bias.git
 cd gender-bias
 
-conda create -n python3 python=3.6
-conda activate python3
+conda create -n gender_reinflection python=3.6
+conda activate gender_reinflection
 
 pip install .
 ```
