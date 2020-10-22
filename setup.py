@@ -25,7 +25,8 @@ INSTALL_REQUIRES = [
     'scikit-learn==0.21.3',
     'sacrebleu',
     'camel_tools',
-    'gensim==3.8.0'
+    'gensim==3.8.0',
+    'matplotlib==3.1.1'
 ]
 
 setup(
