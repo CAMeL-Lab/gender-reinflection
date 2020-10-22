@@ -24,7 +24,8 @@ INSTALL_REQUIRES = [
     'torch==1.3.0',
     'scikit-learn==0.21.3',
     'sacrebleu',
-    'camel_tools'
+    'camel_tools',
+    'gensim==3.8.0'
 ]
 
 setup(
