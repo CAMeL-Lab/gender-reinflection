@@ -283,11 +283,6 @@ class MorphFeaturizer:
                 morph_embedding_matrix[index] = torch.tensor(morph_features[word],
                                                              dtype=torch.float64)
 
-        #morph_embedding_matrix[word_vocab.pad_idx] = torch.zeros(4)
-        #morph_embedding_matrix[word_vocab.sos_idx] = torch.randn(4)
-        #morph_embedding_matrix[word_vocab.eos_idx] = torch.randn(4)
-        #morph_embedding_matrix[word_vocab.unk_idx] = torch.randn(4)
-
         return morph_embedding_matrix
 
 def create_gender_embeddings(trg_gender_vocab):
