@@ -1,4 +1,4 @@
-# Reinflection results
+# Reinflection Results:
 
 This directory has all the logs and reinflcetion results for all the experiment we report in the paper. </br></br>
 `do_nothing/`: the do nothing baseline refinlection results on the dev and test sets.</br>
