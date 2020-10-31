@@ -11,7 +11,7 @@ cd gender-reinflection
 conda create -n gender_reinflection python=3.6
 conda activate gender_reinflection
 
-pip install .
+pip install -r requirements.txt
 ```
 
 ## Training the model:
