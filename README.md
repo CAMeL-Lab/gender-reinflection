@@ -28,12 +28,12 @@ Refer to [logs/reinflection](https://github.com/balhafni/gender-reinflection/tre
 ## Reinflection Evaluation:
 
 We use the M<sup>2</sup> scorer and SacreBLEU in our evaluation. To run the evaluation, for the MLE, do nothing, and joint models we report on in the paper, you would need to run `sbatch scripts/run_eval_norm_joint.sh`. Make sure to change the path of inference data you want to evaluate on (refer to `SYSTEM_HYP` in ` scripts/run_eval_norm_joint.sh`). </br></br>
-To run the evaluation for the disjoint models, you would need to run `sbatch scripts/run_eval_norm_disjoint.sh`. Note that we merge the masculine disjoint system output (`logs/reinflection/disjoint_models/arin.to.M/dev.disjoint+morph.inf.norm`) and the feminine disjoint system output (`logs/reinflection/disjoint_models/arin.to.F/dev.disjoint+morph.inf.norm`) and we evaluate on the merged output (`logs/reinflection/disjoint_models/dev.disjoint+morph.inf.norm`). This is like reporting the average of both systems together. </br></br>
+To run the evaluation for the disjoint models, you would need to run `sbatch scripts/run_eval_norm_disjoint.sh`. Note that we merge the masculine disjoint system output (`logs/reinflection/disjoint_models/arin.to.M/dev.disjoint+morph.inf.norm`) and the feminine disjoint system output (`logs/reinflection/disjoint_models/arin.to.F/dev.disjoint+morph.inf.norm`) and we evaluate on the merged output (`logs/reinflection/disjoint_models/dev.disjoint+morph.inf.norm`). This is the same as reporting the average of both systems. </br></br>
 
 
 ## Gender Identification Evalutation:
 
-To get the results of gender identification we report for our experiments in the paper, you would need to run `sbatch scripts/gender_identification.sh`. Make sure to change the inference data path based on the experiment you're running. Throughout all experiments, we report the average F<sub>1</sub> score over the masculine and feminine data. </br></br>
+To get the results of gender identification we report for our experiments in the paper, you would need to run `sbatch scripts/gender_identification.sh`. Make sure to change the `inference_data` path and the `inference_mode` based on the experiment you're running. Throughout all experiments, we report the average F<sub>1</sub> score over the masculine and feminine data. </br></br>
 Refer to [logs/gender_id](https://github.com/balhafni/gender-reinflection/tree/master/logs/gender_id) to get the gender id logs based on how we defined gender identification in our paper.
 
 ## Error Analysis:
