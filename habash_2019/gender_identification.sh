@@ -17,13 +17,9 @@ module purge
 
 export DATA_DIR=data/alhafni
  
-#--inference_data logs/reinflection/joint_models/test.joint+morph.inf.norm
 python utils/gender_identification.py \
  --data_dir $DATA_DIR \
  --normalized \
  --inference_mode test \
  --inference_data habash_2019/test.arin.to.M+F.norm
 
-#/Users/ba63/Desktop/repos/gender-bias/habash_2019/gender_id_results/hypotheses/dev.arin.to.M+F.norm
-
-#/Users/ba63/Desktop/repos/gender-bias/logs/reinflection/disjoint_models/dev.arin.to.M+F.disjoint+morph.inf.norm
