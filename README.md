@@ -33,7 +33,7 @@ To run the evaluation for the disjoint models, you would need to run `sbatch scr
 
 ## Gender Identification Evalutation:
 
-To get the results of gender identification we report for our experiments in the paper, you would need to run `sbatch scripts/gender_identification.sh`. Make sure to change the inference data path based on the experiment you're running. Throughout all experiments, we report the average F<sub>1</sub> score over the masculine and feminine data. </br></br>
+To get the results of gender identification we report for our experiments in the paper, you would need to run `sbatch scripts/gender_identification.sh`. Make sure to change the inference data path and the inference mode based on the experiment you're running. Throughout all experiments, we report the average F<sub>1</sub> score over the masculine and feminine data. </br></br>
 Refer to [logs/gender_id](https://github.com/balhafni/gender-reinflection/tree/master/logs/gender_id) to get the gender id logs based on how we defined gender identification in our paper.
 
 ## Error Analysis:
