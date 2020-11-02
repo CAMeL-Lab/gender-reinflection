@@ -5,7 +5,7 @@ This repo contains code to reproduce the results in our paper [Gender-Aware Rein
 The code was written for python>=3.6 and pytorch 1.3, although newer versions of pytorch might work just fine. You will need a few additional packages. Here's how you can set up the environment using conda (assuming you have conda and cuda installed):
 
 ```bash
-git clone https://github.com/balhafni/gender-reinflection.git
+git clone https://github.com/CAMeL-Lab/gender-reinflection.git
 cd gender-reinflection
 
 conda create -n gender_reinflection python=3.6
