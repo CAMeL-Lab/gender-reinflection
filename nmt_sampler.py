@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 import re
 
-class NMT_Batch_Sampler:
+class BatchSampler:
     def __init__(self, model, src_vocab_char,
                  src_vocab_word, trg_vocab_char,
                  src_labels_vocab, trg_labels_vocab,
@@ -50,7 +50,7 @@ class NMT_Batch_Sampler:
         src_label = self.sample_batch['src_label'][index].cpu().detach().numpy().tolist()
         return self.src_labels_vocab.lookup_index(src_label)
 
-    def translate_sentence(self, sentence, trg_gender=None, max_len=512):
+    def greedy_decode(self, sentence, trg_gender=None, max_len=512):
         # vectorizing the src sentence on the char level and word level
         sentence = re.split(r'(\s+)', sentence)
         vectorized_src_sentence_char = [self.src_vocab_char.sos_idx]

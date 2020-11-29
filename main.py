@@ -14,7 +14,7 @@ import numpy as np
 import argparse
 from gensim.models import KeyedVectors
 from seq2seq import Seq2Seq
-from nmt_sampler import NMT_Batch_Sampler
+from nmt_sampler import BatchSampler
 from beam_decoder import BeamSampler
 import matplotlib.pyplot as plt
 import logging
@@ -399,7 +399,7 @@ def inference(sampler, beam_sampler, dataloader, args):
         else:
             trg_gender = None
 
-        translated = sampler.translate_sentence(sentence=src, trg_gender=trg_gender)
+        translated = sampler.greedy_decode(sentence=src, trg_gender=trg_gender)
         beam_trans_10 = beam_sampler.beam_decode(sentence=src, trg_gender=trg_gender, topk=1, beam_width=10, max_len=512)
         beam_trans_1 = beam_sampler.beam_decode(sentence=src, trg_gender=trg_gender, topk=1, beam_width=1, max_len=512)
 
@@ -823,13 +823,13 @@ def main():
         model = model.to(device)
         dataset.set_split(args.inference_mode)
         dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=collator)
-        sampler = NMT_Batch_Sampler(model=model,
-                                    src_vocab_char=vectorizer.src_vocab_char,
-                                    src_vocab_word=vectorizer.src_vocab_word,
-                                    trg_vocab_char=vectorizer.trg_vocab_char,
-                                    src_labels_vocab=vectorizer.src_labels_vocab,
-                                    trg_labels_vocab=vectorizer.trg_labels_vocab,
-                                    trg_gender_vocab=vectorizer.trg_gender_vocab)
+        sampler = BatchSampler(model=model,
+                               src_vocab_char=vectorizer.src_vocab_char,
+                               src_vocab_word=vectorizer.src_vocab_word,
+                               trg_vocab_char=vectorizer.trg_vocab_char,
+                               src_labels_vocab=vectorizer.src_labels_vocab,
+                               trg_labels_vocab=vectorizer.trg_labels_vocab,
+                               trg_gender_vocab=vectorizer.trg_gender_vocab)
 
         beam_sampler =  BeamSampler(model=model,
                                     src_vocab_char=vectorizer.src_vocab_char,
