@@ -1,4 +1,4 @@
-from nmt_sampler import NMT_Batch_Sampler
+from nmt_sampler import BatchSampler
 from queue import PriorityQueue
 import operator
 import torch
@@ -36,8 +36,8 @@ class BeamSearchNode:
        they can fit in the priority queue"""
        return self.logp < other.logp
 
-class BeamSampler(NMT_Batch_Sampler):
-    """A subclass of NMT_Batch_Sampler that uses beam_search for decoding"""
+class BeamSampler(BatchSampler):
+    """A subclass of BatchSampler that uses beam_search for decoding"""
     def __init__(self, model, src_vocab_char,
                  src_vocab_word, trg_vocab_char,
                  src_labels_vocab, trg_labels_vocab,
