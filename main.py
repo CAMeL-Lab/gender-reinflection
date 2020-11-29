@@ -14,7 +14,7 @@ import numpy as np
 import argparse
 from gensim.models import KeyedVectors
 from seq2seq import Seq2Seq
-from nmt_sampler import BatchSampler
+from greedy_decoder import BatchSampler
 from beam_decoder import BeamSampler
 import matplotlib.pyplot as plt
 import logging
