@@ -1,4 +1,4 @@
-from nmt_sampler import BatchSampler
+from greedy_decoder import BatchSampler
 from queue import PriorityQueue
 import operator
 import torch
