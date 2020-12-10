@@ -1,5 +1,5 @@
 # Gender-Aware Reinflection using Linguistically Enhanced Neural Models:
-This repo contains code to reproduce the results in our paper [Gender-Aware Reinflection using Linguistically Enhanced Neural Models](blabla)
+This repo contains code to reproduce the results in our paper [Gender-Aware Reinflection using Linguistically Enhanced Neural Models](https://www.aclweb.org/anthology/2020.gebnlp-1.12.pdf)
 
 ## Requirements:
 The code was written for python>=3.6 and pytorch 1.3, although newer versions of pytorch might work just fine. You will need a few additional packages. Here's how you can set up the environment using conda (assuming you have conda and cuda installed):
@@ -45,3 +45,23 @@ Refer to [logs/error_analysis](/logs/error_analysis) to get the error analysis l
 ## License:
 
 This repo is available under the MIT license. See the [LICENSE file](/LICENSE) for more info.
+
+## Citation:
+
+If you find the code or data in this repo helpful, please cite [our paper](https://www.aclweb.org/anthology/2020.gebnlp-1.12.pdf):
+
+```bibtex
+@inproceedings{alhafni-etal-2020-gender,
+    title = "Gender-Aware Reinflection using Linguistically Enhanced Neural Models",
+    author = "Alhafni, Bashar  and
+      Habash, Nizar  and
+      Bouamor, Houda",
+    booktitle = "Proceedings of the Second Workshop on Gender Bias in Natural Language Processing",
+    month = dec,
+    year = "2020",
+    address = "Barcelona, Spain (Online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://www.aclweb.org/anthology/2020.gebnlp-1.12",
+    pages = "139--150",
+    abstract = "In this paper, we present an approach for sentence-level gender reinflection using linguistically enhanced sequence-to-sequence models. Our system takes an Arabic sentence and a given target gender as input and generates a gender-reinflected sentence based on the target gender. We formulate the problem as a user-aware grammatical error correction task and build an encoder-decoder architecture to jointly model reinflection for both masculine and feminine grammatical genders. We also show that adding linguistic features to our model leads to better reinflection results. The results on a blind test set using our best system show improvements over previous work, with a 3.6{\%} absolute increase in M2 F0.5.",
+}
